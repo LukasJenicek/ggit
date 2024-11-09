@@ -22,7 +22,7 @@ func main() {
 		if err := initGit(); err != nil {
 			log.Fatalf("init: %v", err)
 		}
-		fmt.Println(cmd)
+		fmt.Println("Initialized empty Git repository")
 	default:
 		log.Fatalf("unknown command: %q", cmd)
 	}
@@ -33,7 +33,6 @@ func initGit() error {
 	if err != nil {
 		return fmt.Errorf("get current working directory: %v", err)
 	}
-	fmt.Println("working directory", workingDirectory)
 
 	paths := []string{".git", ".git/objects", ".git/refs"}
 	for _, path := range paths {
