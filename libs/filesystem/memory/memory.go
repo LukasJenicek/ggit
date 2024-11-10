@@ -21,6 +21,12 @@ func New() *Fs {
 	}
 }
 
+// GetFs
+// Testing purposes only
+func (f *Fs) Get() map[string]os.FileInfo {
+	return f.fs
+}
+
 // Stat simulates the os.Stat function for the in-memory file system.
 // It returns the file info if the file or directory exists, or an error if it does not.
 func (f *Fs) Stat(name string) (os.FileInfo, error) {

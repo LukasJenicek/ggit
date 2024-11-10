@@ -43,8 +43,7 @@ func (r *Repository) Init() error {
 	dirs := []string{".git", ".git/objects", ".git/refs"}
 
 	for _, path := range dirs {
-		err := os.Mkdir(filepath.Join(r.RootDir, path), os.ModePerm)
-
+		err := r.FS.Mkdir(filepath.Join(r.RootDir, path), os.ModePerm)
 		if err != nil {
 			return fmt.Errorf("create %s directory: %r", path, err)
 		}
