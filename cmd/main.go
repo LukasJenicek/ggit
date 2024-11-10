@@ -2,9 +2,14 @@ package main
 
 import (
 	"fmt"
+	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
+	"slices"
+
+	"github.com/LukasJenicek/ggit/libs/filesystem"
+	"github.com/LukasJenicek/ggit/libs/repository"
 )
 
 func main() {
@@ -17,30 +22,56 @@ func main() {
 		log.Fatalf("cmd is required")
 	}
 
+	workingDirectory, err := os.Getwd()
+	if err != nil {
+		log.Fatalf("get current working directory: %v", err)
+	}
+
+	repo, err := repository.New(filesystem.New(), workingDirectory)
+	if err != nil {
+		log.Fatalf("init repository: %v", err)
+	}
+
+	if cmd == "init" && repo.Initialized {
+		log.Fatalf("ggit already initialized")
+	}
+
 	switch cmd {
 	case "init":
-		if err := initGit(); err != nil {
-			log.Fatalf("init: %v", err)
+		if err = repo.Init(); err != nil {
+			log.Fatalf("ggit init: %v", err)
 		}
-		fmt.Println("Initialized empty Git repository")
+	case "commit":
+		files, err := listFiles(workingDirectory)
+		if err != nil {
+			log.Fatalf("list files: %v", err)
+		}
+		fmt.Println(files)
 	default:
 		log.Fatalf("unknown command: %q", cmd)
 	}
 }
 
-func initGit() error {
-	workingDirectory, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("get current working directory: %v", err)
-	}
+func listFiles(workingDir string) ([]string, error) {
+	// TODO: load more ignored files from config
+	ignore := []string{".", "..", ".git", workingDir}
 
-	paths := []string{".git", ".git/objects", ".git/refs"}
-	for _, path := range paths {
-		err = os.Mkdir(filepath.Join(workingDirectory, path), os.ModePerm)
-		if err != nil {
-			return fmt.Errorf("create %s directory: %w", path, err)
+	files := []string{}
+	err := filepath.WalkDir(workingDir, func(path string, d fs.DirEntry, err error) error {
+		if slices.Contains(ignore, path) {
+			return nil
 		}
+
+		if slices.Contains(ignore, d.Name()) {
+			return filepath.SkipDir
+		}
+
+		files = append(files, path)
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("walk recursively dir %q: %v", workingDir, err)
 	}
 
-	return nil
+	return files, nil
 }
