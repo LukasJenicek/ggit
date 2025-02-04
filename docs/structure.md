@@ -5,7 +5,7 @@
 3. .git/HEAD - contains a reference to the current commit, either using commit id or symbolic reference to the current branch
 4. .git/info - exclude files ( .git/info/exclude )
 5. .git/hooks - git hooks
-6. .git/objects - directory forms git's databas, it's where  GIT stores all content ( source code and other assets  )
+6. .git/objects - directory forms git's database, it's where  GIT stores all content ( source code and other assets  )
 7. .git/refs - stores various kinds of pointers into .git/objects database. For example, files in
 -.git/refs/heads store the latest commit on each local branch ,
 -.git/refs/remotes store the latest commit on each remote branch
