@@ -32,12 +32,12 @@ func main() {
 		log.Fatalf("init repository: %v", err)
 	}
 
-	if cmd == "init" && repo.Initialized {
-		log.Fatalf("ggit already initialized")
-	}
-
 	switch cmd {
 	case "init":
+		if repo.Initialized {
+			log.Fatalf("ggit already initialized")
+		}
+
 		if err = repo.Init(); err != nil {
 			log.Fatalf("ggit init: %v", err)
 		}
