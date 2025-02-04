@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/LukasJenicek/ggit/libs/filesystem"
+	"github.com/LukasJenicek/ggit/internal/filesystem"
 )
 
 // Repository

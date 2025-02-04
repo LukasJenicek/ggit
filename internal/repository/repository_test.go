@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/LukasJenicek/ggit/libs/filesystem/memory"
-	"github.com/LukasJenicek/ggit/libs/repository"
+	"github.com/LukasJenicek/ggit/internal/filesystem/memory"
+	"github.com/LukasJenicek/ggit/internal/repository"
 )
 
 func TestNew(t *testing.T) {
