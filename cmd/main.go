@@ -2,14 +2,12 @@ package main
 
 import (
 	"fmt"
-	"io/fs"
 	"log"
 	"os"
-	"path/filepath"
-	"slices"
 
 	"github.com/LukasJenicek/ggit/internal/filesystem"
 	"github.com/LukasJenicek/ggit/internal/repository"
+	"github.com/LukasJenicek/ggit/internal/workspace"
 )
 
 func main() {
@@ -42,7 +40,9 @@ func main() {
 			log.Fatalf("ggit init: %v", err)
 		}
 	case "commit":
-		files, err := listFiles(workingDirectory)
+		w := workspace.New()
+
+		files, err := w.ListFiles(workingDirectory)
 		if err != nil {
 			log.Fatalf("list files: %v", err)
 		}
@@ -50,28 +50,4 @@ func main() {
 	default:
 		log.Fatalf("unknown command: %q", cmd)
 	}
-}
-
-func listFiles(workingDir string) ([]string, error) {
-	// TODO: load more ignored files from config
-	ignore := []string{".", "..", ".git", workingDir}
-
-	files := []string{}
-	err := filepath.WalkDir(workingDir, func(path string, d fs.DirEntry, err error) error {
-		if slices.Contains(ignore, path) {
-			return nil
-		}
-
-		if slices.Contains(ignore, d.Name()) {
-			return filepath.SkipDir
-		}
-
-		files = append(files, path)
-		return nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("walk recursively dir %q: %v", workingDir, err)
-	}
-
-	return files, nil
 }
