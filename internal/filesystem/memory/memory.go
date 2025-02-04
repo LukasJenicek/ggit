@@ -30,6 +30,7 @@ func (f *Fs) Stat(name string) (os.FileInfo, error) {
 	if !exists {
 		return nil, fmt.Errorf("file not found: %s", name)
 	}
+
 	return info, nil
 }
 
@@ -69,6 +70,7 @@ func (f *Fs) WriteFile(name string, content []byte) error {
 	}
 
 	f.contents[name] = content
+
 	return nil
 }
 
@@ -77,6 +79,7 @@ func (f *Fs) ReadFile(name string) ([]byte, error) {
 	if !exists {
 		return nil, fmt.Errorf("file not found: %s", name)
 	}
+
 	return content, nil
 }
 
@@ -102,6 +105,7 @@ func (fi *FileInfo) Mode() os.FileMode {
 	if fi.isDir {
 		return os.ModeDir
 	}
+
 	return 0
 }
 

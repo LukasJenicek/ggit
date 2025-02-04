@@ -14,6 +14,8 @@ func TestNew(t *testing.T) {
 	t.Parallel()
 
 	t.Run("NotInitialized", func(t *testing.T) {
+		t.Parallel()
+
 		fs := memory.New()
 
 		repo, err := repository.New(fs, "/home/test/")
@@ -24,6 +26,8 @@ func TestNew(t *testing.T) {
 	})
 
 	t.Run("AlreadyInitialized", func(t *testing.T) {
+		t.Parallel()
+
 		fs := memory.New()
 		err := fs.Mkdir("/home/test/.git", os.ModePerm)
 		require.NoError(t, err)
@@ -37,7 +41,11 @@ func TestNew(t *testing.T) {
 }
 
 func TestInit(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Init", func(t *testing.T) {
+		t.Parallel()
+
 		repo, err := repository.New(memory.New(), "/home/test/")
 		require.NoError(t, err)
 		require.NotNil(t, repo)

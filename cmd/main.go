@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -42,11 +41,10 @@ func main() {
 	case "commit":
 		w := workspace.New()
 
-		files, err := w.ListFiles(workingDirectory)
+		_, err := w.ListFiles(workingDirectory)
 		if err != nil {
 			log.Fatalf("list files: %v", err)
 		}
-		fmt.Println(files)
 	default:
 		log.Fatalf("unknown command: %q", cmd)
 	}
