@@ -18,6 +18,7 @@ func (w Workspace) ListFiles(cwd string) ([]string, error) {
 	ignore := []string{".", "..", ".git"}
 
 	files := []string{}
+
 	err := filepath.WalkDir(cwd, func(path string, d fs.DirEntry, err error) error {
 		if slices.Contains(ignore, path) {
 			return nil
@@ -34,7 +35,7 @@ func (w Workspace) ListFiles(cwd string) ([]string, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("walk recursively dir %q: %v", cwd, err)
+		return nil, fmt.Errorf("walk recursively dir %q: %w", cwd, err)
 	}
 
 	return files, nil

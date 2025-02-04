@@ -7,12 +7,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/LukasJenicek/ggit/internal/workspace"
-
 	"github.com/stretchr/testify/assert"
+
+	"github.com/LukasJenicek/ggit/internal/workspace"
 )
 
 func TestWorkspace_ListFiles(t *testing.T) {
+	t.Parallel()
+
 	w := workspace.New()
 
 	projectRootFolder, err := getProjectRootFolder()
@@ -39,7 +41,7 @@ func TestWorkspace_ListFiles(t *testing.T) {
 func getProjectRootFolder() (string, error) {
 	getwd, err := os.Getwd()
 	if err != nil {
-		return "", fmt.Errorf("get working directory: %s", err)
+		return "", fmt.Errorf("get working directory: %w", err)
 	}
 
 	return strings.Replace(getwd, "/internal/workspace", "", 1), nil

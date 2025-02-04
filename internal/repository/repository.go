@@ -8,9 +8,7 @@ import (
 	"github.com/LukasJenicek/ggit/internal/filesystem"
 )
 
-// Repository
-// RootDir = Where .git folder exist
-// Cwd = Is relative folder where you run ggit commands
+// Cwd = Is relative folder where you run ggit commands.
 type Repository struct {
 	Cwd         string
 	RootDir     string
@@ -22,6 +20,7 @@ func New(fs filesystem.Fs, cwd string) (*Repository, error) {
 	var initialized bool
 
 	gitDir := filepath.Join(cwd, ".git")
+
 	_, err := fs.Stat(gitDir)
 	if err == nil {
 		initialized = true
@@ -45,7 +44,7 @@ func (r *Repository) Init() error {
 	for _, path := range dirs {
 		err := r.FS.Mkdir(filepath.Join(r.RootDir, path), os.ModePerm)
 		if err != nil {
-			return fmt.Errorf("create %s directory: %r", path, err)
+			return fmt.Errorf("create %s directory: %w", path, err)
 		}
 	}
 
