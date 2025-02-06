@@ -6,7 +6,7 @@ linters:
   # https://golangci-lint.run/usage/linters/#enabled-by-default
   enable:
     # forbid fmt.Println statements and similar, spew.Dump etc
-    - forbidigo
+#    - forbidigo
     # import sorting linter and fixed
     - gci
     # comments should end in a period

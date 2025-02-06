@@ -10,6 +10,9 @@
 -.git/refs/heads store the latest commit on each local branch ,
 -.git/refs/remotes store the latest commit on each remote branch
 -.git/refs/tags stores tags.
+8. .git/COMMIT_EDITMSG - file used to compose commit messages.
+9. .git/index - cache storing information about each file in the current commit. updated whenever you add new files using `git add`
+10. .git/logs - contains references, something that points to a commit, like HEAD or a branch name
 
 Config example:
 ```
