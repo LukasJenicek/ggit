@@ -6,7 +6,6 @@ import (
 
 	"github.com/LukasJenicek/ggit/internal/filesystem"
 	"github.com/LukasJenicek/ggit/internal/repository"
-	"github.com/LukasJenicek/ggit/internal/workspace"
 )
 
 func main() {
@@ -39,11 +38,8 @@ func main() {
 			log.Fatalf("ggit init: %v", err)
 		}
 	case "commit":
-		w := workspace.New()
-
-		_, err := w.ListFiles(workingDirectory)
-		if err != nil {
-			log.Fatalf("list files: %v", err)
+		if err = repo.Commit(); err != nil {
+			log.Fatalf("commit: %v", err)
 		}
 	default:
 		log.Fatalf("unknown command: %q", cmd)

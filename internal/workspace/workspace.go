@@ -7,19 +7,27 @@ import (
 	"slices"
 )
 
-type Workspace struct{}
-
-func New() *Workspace {
-	return &Workspace{}
+type Workspace struct {
+	Cwd string
 }
 
-func (w Workspace) ListFiles(cwd string) ([]string, error) {
+func New(cwd string) *Workspace {
+	return &Workspace{
+		Cwd: cwd,
+	}
+}
+
+type File struct {
+	Path string
+	Dir  bool
+}
+
+func (w Workspace) ListFiles() ([]*File, error) {
 	// TODO: load more ignored files from config
 	ignore := []string{".", "..", ".git"}
 
-	files := []string{}
-
-	err := filepath.WalkDir(cwd, func(path string, d fs.DirEntry, err error) error {
+	files := []*File{}
+	err := filepath.WalkDir(w.Cwd, func(path string, d fs.DirEntry, err error) error {
 		if slices.Contains(ignore, path) {
 			return nil
 		}
@@ -29,13 +37,15 @@ func (w Workspace) ListFiles(cwd string) ([]string, error) {
 		}
 
 		if !d.IsDir() {
-			files = append(files, path)
+			files = append(files, &File{Path: path, Dir: false})
+		} else {
+			files = append(files, &File{Path: path, Dir: true})
 		}
 
 		return nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("walk recursively dir %q: %w", cwd, err)
+		return nil, fmt.Errorf("walk recursively dir %q: %w", w.Cwd, err)
 	}
 
 	return files, nil

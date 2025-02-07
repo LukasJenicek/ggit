@@ -64,7 +64,6 @@ Print content using hexdump
 2 - 4 Line: `.gitignore.."........?O...k..r.100644 ` => `{filename}{null byte}{objectId}{100644}`
 
 - objectId is 20 bytes
-- 
 
 ### Blob
 Example: `.gitignore`
