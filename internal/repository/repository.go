@@ -32,7 +32,11 @@ func New(fs filesystem.Fs, cwd string) (*Repository, error) {
 	}
 
 	if err != nil && os.IsNotExist(err) {
-		return nil, fmt.Errorf("checking dir: %w", err)
+		if os.IsNotExist(err) {
+			initialized = false
+		} else {
+			return nil, fmt.Errorf("checking dir: %w", err)
+		}
 	}
 
 	return &Repository{
@@ -64,7 +68,26 @@ func (r *Repository) Commit() error {
 		return fmt.Errorf("list files: %w", err)
 	}
 
-	t := database.NewTree(files)
+	blobs := make([]*database.Blob, 0, len(files))
+	for _, file := range files {
+		// TODO: Dirs not handled at the moment
+		if file.Dir {
+			continue
+		}
+
+		b, err := database.NewBlob(file.Path)
+		if err != nil {
+			return fmt.Errorf("create blob %s: %w", file.Path, err)
+		}
+
+		if err := r.Database.Store(b); err != nil {
+			return fmt.Errorf("store blob %s: %w", file.Path, err)
+		}
+
+		blobs = append(blobs, b)
+	}
+
+	t := database.NewTree(blobs)
 	if err := r.Database.Store(t); err != nil {
 		return fmt.Errorf("store object: %w", err)
 	}

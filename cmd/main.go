@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -37,6 +38,8 @@ func main() {
 		if err = repo.Init(); err != nil {
 			log.Fatalf("ggit init: %v", err)
 		}
+
+		fmt.Printf("ggit init succeeded\n")
 	case "commit":
 		if err = repo.Commit(); err != nil {
 			log.Fatalf("commit: %v", err)

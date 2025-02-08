@@ -4,6 +4,7 @@ build:
 	go build -o /home/lj/.local/bin/ggit cmd/main.go
 	go build -o ./bin/inflate cmd/utils/inflate/main.go
 
+
 test:
 	go test -race -shuffle=on -v ./...
 
