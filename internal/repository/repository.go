@@ -118,7 +118,7 @@ func (r *Repository) Commit() error {
 	defer hFile.Close()
 
 	cId := hex.EncodeToString(c.ID())
-	if _, err := hFile.Write([]byte(cId)); err != nil {
+	if _, err := hFile.WriteString(cId); err != nil {
 		return fmt.Errorf("write HEAD file: %w", err)
 	}
 

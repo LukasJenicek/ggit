@@ -19,7 +19,7 @@ func NewAuthor(email, name string, now *time.Time) *Author {
 	}
 }
 
-// name <email> unix-timestamp timezone
+// name <email> unix-timestamp timezone.
 func (a *Author) String() string {
 	return fmt.Sprintf(
 		"%s <%s> %d %s",

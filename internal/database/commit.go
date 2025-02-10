@@ -33,11 +33,11 @@ func (c *Commit) Type() string {
 
 func (c *Commit) Content() []byte {
 	lines := []string{
-		fmt.Sprintf("tree %s", c.treeOid),
-		fmt.Sprintf("author %s", c.author.String()),
-		fmt.Sprintf("committer %s", c.author.String()),
+		"tree " + c.treeOid,
+		"author " + c.author.String(),
+		"committer " + c.author.String(),
 		"",
-		fmt.Sprintf("%s", c.message),
+		c.message,
 	}
 
 	content := strings.Join(lines, "\n")
