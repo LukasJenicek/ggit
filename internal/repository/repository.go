@@ -1,9 +1,11 @@
 package repository
 
 import (
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/LukasJenicek/ggit/internal/database"
 	"github.com/LukasJenicek/ggit/internal/filesystem"
@@ -19,6 +21,7 @@ type Repository struct {
 
 	Cwd         string
 	RootDir     string
+	GitPath     string
 	Initialized bool
 }
 
@@ -43,6 +46,7 @@ func New(fs filesystem.Fs, cwd string) (*Repository, error) {
 	return &Repository{
 		RootDir:     cwd,
 		Cwd:         cwd,
+		GitPath:     gitDir,
 		Initialized: initialized,
 		FS:          fs,
 		Workspace:   workspace.New(cwd),
@@ -96,8 +100,29 @@ func (r *Repository) Commit() error {
 
 	t := database.NewTree(blobs)
 	if err := r.Database.Store(t); err != nil {
-		return fmt.Errorf("store object: %w", err)
+		return fmt.Errorf("store tree: %w", err)
 	}
+
+	now := time.Now()
+	author := database.NewAuthor("lukas.jenicek5@gmail.com", "Lukas Jenicek", &now)
+
+	c := database.NewCommit(hex.EncodeToString(t.ID()), author, "all")
+	if err := r.Database.Store(c); err != nil {
+		return fmt.Errorf("store commit: %w", err)
+	}
+
+	hFile, err := os.Create(r.GitPath + "/HEAD")
+	if err != nil {
+		return fmt.Errorf("create HEAD file: %w", err)
+	}
+	defer hFile.Close()
+
+	cId := hex.EncodeToString(c.ID())
+	if _, err := hFile.Write([]byte(cId)); err != nil {
+		return fmt.Errorf("write HEAD file: %w", err)
+	}
+
+	fmt.Println("commit successfully ", cId, " ", "all")
 
 	return nil
 }
