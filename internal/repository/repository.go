@@ -117,12 +117,12 @@ func (r *Repository) Commit() error {
 	}
 	defer hFile.Close()
 
-	cId := hex.EncodeToString(c.ID())
-	if _, err := hFile.WriteString(cId); err != nil {
+	cID := hex.EncodeToString(c.ID())
+	if _, err := hFile.WriteString(cID); err != nil {
 		return fmt.Errorf("write HEAD file: %w", err)
 	}
 
-	fmt.Println("commit successfully ", cId, " ", "all")
+	fmt.Println("commit successfully ", cID, " ", "all")
 
 	return nil
 }
