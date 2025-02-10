@@ -99,7 +99,6 @@ followed by blank line and then the commit message
 - SHA1 always generates 160 bits hash size
 - Check this example where you can see how object id is generated: `go run cmd/utils/object-id/main.go`
 
-
 Lib: https://manpages.ubuntu.com/manpages/trusty/man1/zlib-flate.1.html
 Using zlib-flate package: `cat .git/objects/f1/ca1419cbc72c555c80a490dfbe1485571a3950 | zlib-flate -uncompress`
 
@@ -117,8 +116,5 @@ hexdump prints a .
 
 So, Git stores blobs by prepending them with the word blob, a space, the length of the blob,
 and a null byte, and then compressing the result using zlib.
-
-A byte is 8 bits, and can take any value from 0 to 25510, or FF16. ASCII only defines meanings for byte values up to 12710 or 7F16, and
-values below 3210 or 2016 represent non-printing characters.
 
 00 is a null bytes which is typically used to separate bits of information in a binary format.
