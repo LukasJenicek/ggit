@@ -27,7 +27,7 @@ func NewBlob(f *os.File, rootDir string) (*Blob, error) {
 	}, nil
 }
 
-func (b *Blob) Id() []byte {
+func (b *Blob) ID() []byte {
 	hasher := sha1.New()
 	hasher.Write(b.Content())
 

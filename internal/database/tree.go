@@ -28,7 +28,7 @@ func NewTree(blobs []*Blob) *Tree {
 	return &Tree{blobs: blobs}
 }
 
-func (t *Tree) Id() []byte {
+func (t *Tree) ID() []byte {
 	hasher := sha1.New()
 	hasher.Write(t.Content())
 
@@ -44,7 +44,7 @@ func (t *Tree) Content() []byte {
 
 	content := ""
 	for _, blob := range t.blobs {
-		content += fmt.Sprintf("%s %s\x00%s", "100644", blob.filename, blob.Id())
+		content += fmt.Sprintf("%s %s\x00%s", "100644", blob.filename, blob.ID())
 	}
 
 	return []byte(fmt.Sprintf("tree %d\x00%s", len([]byte(content)), []byte(content)))

@@ -15,7 +15,7 @@ type Database struct {
 }
 
 type Object interface {
-	Id() []byte
+	ID() []byte
 	Type() string
 	Content() []byte
 }
@@ -29,7 +29,7 @@ func New(gitDir string) *Database {
 
 func (d *Database) Store(o Object) error {
 	c := o.Content()
-	oid := o.Id()
+	oid := o.ID()
 
 	if len(oid) != 20 {
 		return fmt.Errorf("sha1 hash must have 20 bytes, invalid object id: %s", oid)
@@ -55,7 +55,6 @@ func (d *Database) writeObject(oid string, content []byte) error {
 
 	// zlib compression with best speed
 	var compressed bytes.Buffer
-
 	zlibWriter, err := zlib.NewWriterLevel(&compressed, zlib.BestSpeed)
 	if err != nil {
 		return fmt.Errorf("could not create zlib writer: %w", err)
@@ -76,5 +75,9 @@ func (d *Database) writeObject(oid string, content []byte) error {
 		return fmt.Errorf("store tmp object %s: %w", oid, err)
 	}
 
-	return os.Rename(tmpPath, realPath)
+	if err = os.Rename(tmpPath, realPath); err != nil {
+		return fmt.Errorf("rename tmp object %s: %w", oid, err)
+	}
+
+	return nil
 }

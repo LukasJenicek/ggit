@@ -6,7 +6,7 @@ func NewCommit() *Commit {
 	return &Commit{}
 }
 
-func (c Commit) Id() string {
+func (c Commit) ID() string {
 	// TODO implement me
 	panic("implement me")
 }
