@@ -15,7 +15,7 @@ import (
 func TestWorkspace_ListFiles(t *testing.T) {
 	t.Parallel()
 
-	w := workspace.New()
+	w := workspace.New("/tmp")
 
 	projectRootFolder, err := getProjectRootFolder()
 	if err != nil {
@@ -24,7 +24,7 @@ func TestWorkspace_ListFiles(t *testing.T) {
 
 	testDataFolder := filepath.Join(projectRootFolder, "testdata")
 
-	files, err := w.ListFiles(testDataFolder)
+	files, err := w.ListFiles()
 	if err != nil {
 		t.Errorf("list files: %s", err)
 	}

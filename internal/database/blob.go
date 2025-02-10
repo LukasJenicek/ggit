@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"os"
+	"strings"
 )
 
 type Blob struct {
@@ -11,19 +12,17 @@ type Blob struct {
 	content  []byte
 }
 
-func NewBlob(filePath string) (*Blob, error) {
-	f, err := os.Open(filePath)
-	if err != nil {
-		return nil, fmt.Errorf("open file %s: %w", filePath, err)
-	}
-
-	content, err := os.ReadFile(filePath)
+func NewBlob(f *os.File, rootDir string) (*Blob, error) {
+	content, err := os.ReadFile(f.Name())
 	if err != nil {
 		return nil, fmt.Errorf("read file content: %w", err)
 	}
 
+	// relative path to root folder
+	fPath := strings.Replace(f.Name(), rootDir+"/", "", 1)
+
 	return &Blob{
-		filename: f.Name(),
+		filename: fPath,
 		content:  content,
 	}, nil
 }

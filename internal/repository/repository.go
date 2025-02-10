@@ -2,12 +2,12 @@ package repository
 
 import (
 	"fmt"
-	"github.com/LukasJenicek/ggit/internal/database"
-	"github.com/LukasJenicek/ggit/internal/workspace"
 	"os"
 	"path/filepath"
 
+	"github.com/LukasJenicek/ggit/internal/database"
 	"github.com/LukasJenicek/ggit/internal/filesystem"
+	"github.com/LukasJenicek/ggit/internal/workspace"
 )
 
 // Repository
@@ -26,6 +26,7 @@ func New(fs filesystem.Fs, cwd string) (*Repository, error) {
 	var initialized bool
 
 	gitDir := filepath.Join(cwd, ".git")
+
 	_, err := fs.Stat(gitDir)
 	if err == nil {
 		initialized = true
@@ -45,7 +46,7 @@ func New(fs filesystem.Fs, cwd string) (*Repository, error) {
 		Initialized: initialized,
 		FS:          fs,
 		Workspace:   workspace.New(cwd),
-		Database:    database.New(gitDir + "/objects"),
+		Database:    database.New(gitDir),
 	}, nil
 }
 
@@ -69,13 +70,19 @@ func (r *Repository) Commit() error {
 	}
 
 	blobs := make([]*database.Blob, 0, len(files))
+
 	for _, file := range files {
 		// TODO: Dirs not handled at the moment
 		if file.Dir {
 			continue
 		}
 
-		b, err := database.NewBlob(file.Path)
+		f, err := os.Open(file.Path)
+		if err != nil {
+			return fmt.Errorf("open file %s: %w", file.Path, err)
+		}
+
+		b, err := database.NewBlob(f, r.RootDir)
 		if err != nil {
 			return fmt.Errorf("create blob %s: %w", file.Path, err)
 		}

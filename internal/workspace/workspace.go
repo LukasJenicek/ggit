@@ -27,6 +27,7 @@ func (w Workspace) ListFiles() ([]*File, error) {
 	ignore := []string{".", "..", ".git"}
 
 	files := []*File{}
+
 	err := filepath.WalkDir(w.Cwd, func(path string, d fs.DirEntry, err error) error {
 		if slices.Contains(ignore, path) {
 			return nil

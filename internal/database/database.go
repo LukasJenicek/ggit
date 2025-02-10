@@ -10,7 +10,8 @@ import (
 )
 
 type Database struct {
-	path string
+	gitRootDir  string
+	objectsPath string
 }
 
 type Object interface {
@@ -19,10 +20,11 @@ type Object interface {
 	Content() []byte
 }
 
-// New
-// objectsPath = .git/objects
-func New(objectsPath string) *Database {
-	return &Database{path: objectsPath}
+func New(gitDir string) *Database {
+	return &Database{
+		gitRootDir:  gitDir,
+		objectsPath: gitDir + "/objects",
+	}
 }
 
 func (d *Database) Store(o Object) error {
@@ -37,14 +39,14 @@ func (d *Database) Store(o Object) error {
 }
 
 func (d *Database) writeObject(oid string, content []byte) error {
-	realPath := fmt.Sprintf("%s/%s/%s", d.path, oid[:2], oid[2:])
+	realPath := fmt.Sprintf("%s/%s/%s", d.objectsPath, oid[:2], oid[2:])
 	dir := filepath.Dir(realPath)
 
 	// create directory in .git/objects folder
 	if _, err := os.Stat(dir); err != nil {
 		if os.IsNotExist(err) {
-			if err := os.MkdirAll(dir, 0755); err != nil {
-				return fmt.Errorf("could not create directory %s: %v", dir, err)
+			if err := os.MkdirAll(dir, 0o755); err != nil {
+				return fmt.Errorf("could not create directory %s: %w", dir, err)
 			}
 		} else {
 			return fmt.Errorf("check directory: %w", err)
@@ -53,22 +55,25 @@ func (d *Database) writeObject(oid string, content []byte) error {
 
 	// zlib compression with best speed
 	var compressed bytes.Buffer
+
 	zlibWriter, err := zlib.NewWriterLevel(&compressed, zlib.BestSpeed)
 	if err != nil {
 		return fmt.Errorf("could not create zlib writer: %w", err)
 	}
+
 	if _, err := zlibWriter.Write(content); err != nil {
 		return fmt.Errorf("compress object content: %w", err)
 	}
+
 	if err := zlibWriter.Close(); err != nil {
 		return fmt.Errorf("close zlib writer: %w", err)
 	}
 
 	// when os write content to file it does not have to be done at once
 	// first we create tmp object and then move it ( rename it )
-	tmpPath := fmt.Sprintf("%s/%s/tmp_%s", d.path, oid[:2], oid[2:])
-	if err := os.WriteFile(tmpPath, compressed.Bytes(), 0644); err != nil {
-		return fmt.Errorf("store tmp object %s: %v", oid, err)
+	tmpPath := fmt.Sprintf("%s/%s/tmp_%s", d.objectsPath, oid[:2], oid[2:])
+	if err := os.WriteFile(tmpPath, compressed.Bytes(), 0o644); err != nil {
+		return fmt.Errorf("store tmp object %s: %w", oid, err)
 	}
 
 	return os.Rename(tmpPath, realPath)

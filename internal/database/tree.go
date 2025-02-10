@@ -3,7 +3,6 @@ package database
 import (
 	"crypto/sha1"
 	"fmt"
-	"path/filepath"
 	"sort"
 )
 
@@ -45,12 +44,7 @@ func (t *Tree) Content() []byte {
 
 	content := ""
 	for _, blob := range t.blobs {
-		relPath, err := filepath.Rel("/home/lj/Projects/LukasJenicek/example1", blob.filename)
-		if err != nil {
-			panic(err)
-		}
-
-		content += fmt.Sprintf("%s %s\x00%s", "100644", relPath, blob.Id())
+		content += fmt.Sprintf("%s %s\x00%s", "100644", blob.filename, blob.Id())
 	}
 
 	return []byte(fmt.Sprintf("tree %d\x00%s", len([]byte(content)), []byte(content)))

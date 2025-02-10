@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-// .gitignore has object id: be22bdeea290f39e10c63f4f199a156ba1d9728a
+// .gitignore has object id: be22bdeea290f39e10c63f4f199a156ba1d9728a.
 func main() {
 	rawContent := "bin/\nvendor/"
 	rawContentLength := len([]byte(rawContent))
