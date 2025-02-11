@@ -55,7 +55,6 @@ func (d *Database) writeObject(oid string, content []byte) error {
 
 	// zlib compression with best speed
 	var compressed bytes.Buffer
-
 	zlibWriter, err := zlib.NewWriterLevel(&compressed, zlib.BestSpeed)
 	if err != nil {
 		return fmt.Errorf("could not create zlib writer: %w", err)

@@ -19,6 +19,7 @@ type Repository struct {
 	FS        filesystem.Fs
 	Workspace *workspace.Workspace
 	Database  *database.Database
+	Refs      *database.Refs
 	Config    *config.Config
 
 	Cwd         string
@@ -50,10 +51,16 @@ func New(fs filesystem.Fs, cwd string) (*Repository, error) {
 		return nil, fmt.Errorf("load git config: %w", err)
 	}
 
+	refs, err := database.NewRefs(gitDir)
+	if err != nil {
+		return nil, fmt.Errorf("init refs: %w", err)
+	}
+
 	return &Repository{
 		FS:          fs,
 		Workspace:   workspace.New(cwd),
 		Database:    database.New(gitDir),
+		Refs:        refs,
 		Config:      cfg,
 		RootDir:     cwd,
 		Cwd:         cwd,
@@ -114,22 +121,26 @@ func (r *Repository) Commit() error {
 	now := time.Now()
 	author := database.NewAuthor(r.Config.User.Email, r.Config.User.Name, &now)
 
+	// TODO: read from file or cmd argument
 	commitMessage := "all"
 
-	c := database.NewCommit(hex.EncodeToString(t.ID()), author, commitMessage)
+	headCommit, err := r.Refs.Current()
+	if err != nil {
+		return fmt.Errorf("get current commit: %w", err)
+	}
+
+	c, err := database.NewCommit(hex.EncodeToString(t.ID()), author, commitMessage, headCommit)
+	if err != nil {
+		return fmt.Errorf("create commit: %w", err)
+	}
+
 	if err := r.Database.Store(c); err != nil {
 		return fmt.Errorf("store commit: %w", err)
 	}
 
-	hFile, err := os.Create(r.GitPath + "/HEAD")
-	if err != nil {
-		return fmt.Errorf("create HEAD file: %w", err)
-	}
-	defer hFile.Close()
-
 	cID := hex.EncodeToString(c.ID())
-	if _, err := hFile.WriteString(cID); err != nil {
-		return fmt.Errorf("write HEAD file: %w", err)
+	if err = r.Refs.UpdateHead(cID); err != nil {
+		return fmt.Errorf("update head: %w", err)
 	}
 
 	fmt.Println("commit successfully ", cID, " ", commitMessage)
