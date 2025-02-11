@@ -10,7 +10,7 @@ type AtomicFileWriter struct{}
 func (*AtomicFileWriter) Update(path string, content string) error {
 	lockPath := path + ".lock"
 
-	f, err := os.OpenFile(lockPath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0644)
+	f, err := os.OpenFile(lockPath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0o644)
 	if err != nil {
 		return fmt.Errorf("creating temp file %q: %w", lockPath, err)
 	}

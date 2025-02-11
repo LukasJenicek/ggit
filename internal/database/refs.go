@@ -23,8 +23,8 @@ func NewRefs(gitDir string, fileWriter *AtomicFileWriter) (*Refs, error) {
 	return &Refs{gitDir: gitDir, fileWriter: fileWriter}, nil
 }
 
-func (r *Refs) UpdateHead(commitId string) error {
-	return r.fileWriter.Update(r.headPath(), commitId)
+func (r *Refs) UpdateHead(commitID string) error {
+	return r.fileWriter.Update(r.headPath(), commitID)
 }
 
 func (r *Refs) Current() (string, error) {

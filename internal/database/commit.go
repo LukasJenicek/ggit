@@ -47,6 +47,7 @@ func (c *Commit) Content() []byte {
 	if c.parent != "" {
 		lines = append(lines, "parent "+c.parent)
 	}
+
 	lines = append(lines, "author "+c.author.String(), "committer "+c.author.String())
 	lines = append(lines, "", c.message)
 

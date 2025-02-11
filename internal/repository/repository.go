@@ -51,7 +51,7 @@ func New(fs filesystem.Fs, cwd string) (*Repository, error) {
 		return nil, fmt.Errorf("load git config: %w", err)
 	}
 
-	refs, err := database.NewRefs(gitDir)
+	refs, err := database.NewRefs(gitDir, &database.AtomicFileWriter{})
 	if err != nil {
 		return nil, fmt.Errorf("init refs: %w", err)
 	}
