@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/LukasJenicek/ggit/internal/config"
 	"github.com/LukasJenicek/ggit/internal/database"
 	"github.com/LukasJenicek/ggit/internal/filesystem"
 	"github.com/LukasJenicek/ggit/internal/workspace"
@@ -18,6 +19,7 @@ type Repository struct {
 	FS        filesystem.Fs
 	Workspace *workspace.Workspace
 	Database  *database.Database
+	Config    *config.Config
 
 	Cwd         string
 	RootDir     string
@@ -43,14 +45,20 @@ func New(fs filesystem.Fs, cwd string) (*Repository, error) {
 		}
 	}
 
+	cfg, err := config.LoadGitConfig()
+	if err != nil {
+		return nil, fmt.Errorf("load git config: %w", err)
+	}
+
 	return &Repository{
+		FS:          fs,
+		Workspace:   workspace.New(cwd),
+		Database:    database.New(gitDir),
+		Config:      cfg,
 		RootDir:     cwd,
 		Cwd:         cwd,
 		GitPath:     gitDir,
 		Initialized: initialized,
-		FS:          fs,
-		Workspace:   workspace.New(cwd),
-		Database:    database.New(gitDir),
 	}, nil
 }
 
@@ -104,7 +112,7 @@ func (r *Repository) Commit() error {
 	}
 
 	now := time.Now()
-	author := database.NewAuthor("lukas.jenicek5@gmail.com", "Lukas Jenicek", &now)
+	author := database.NewAuthor(r.Config.User.Email, r.Config.User.Name, &now)
 
 	commitMessage := "all"
 

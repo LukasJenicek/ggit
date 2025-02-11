@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -40,7 +41,7 @@ func LoadGitConfig() (*Config, error) {
 		return nil, fmt.Errorf("parse git config content %s: %w", configPath, err)
 	}
 
-	return nil, nil
+	return cfg, nil
 }
 
 func setConfigValues(v reflect.Value, section string, values map[string]map[string]any) error {
@@ -58,7 +59,7 @@ func setConfigValues(v reflect.Value, section string, values map[string]map[stri
 
 	typ := v.Type()
 
-	for i := 0; i < typ.NumField(); i++ {
+	for i := range typ.NumField() {
 		field := typ.Field(i)
 		fieldValue := v.Field(i)
 		tag := field.Tag.Get("config")
@@ -71,11 +72,12 @@ func setConfigValues(v reflect.Value, section string, values map[string]map[stri
 			if err := setConfigValues(fieldValue, tag, values); err != nil {
 				return fmt.Errorf("set config values %s: %w", field.Name, err)
 			}
+
 			continue
 		}
 
 		if section == "" {
-			return fmt.Errorf("section empty")
+			return errors.New("section empty")
 		}
 
 		val, exists := values[section][tag]
@@ -89,7 +91,12 @@ func setConfigValues(v reflect.Value, section string, values map[string]map[stri
 
 		switch fieldValue.Kind() {
 		case reflect.String:
-			fieldValue.SetString(val.(string))
+			val, ok := val.(string)
+			if !ok {
+				return fmt.Errorf("cannot set field %s", tag)
+			}
+
+			fieldValue.SetString(val)
 		case reflect.Bool:
 			boolVal, err := strconv.ParseBool(val.(string))
 			if err == nil {

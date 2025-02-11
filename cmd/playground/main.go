@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/LukasJenicek/ggit/internal/config"
 	"github.com/davecgh/go-spew/spew"
+
+	"github.com/LukasJenicek/ggit/internal/config"
 )
 
 func main() {

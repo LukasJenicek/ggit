@@ -37,11 +37,9 @@ linters:
     - errchkjson
     - errname
     - errorlint
-    - exhaustive
     - exptostd
     - fatcontext
     - forcetypeassert
-    - funlen
     - ginkgolinter
     - gocheckcompilerdirectives
     - gochecknoglobals
@@ -119,6 +117,11 @@ issues:
   fix: true
 
 linters-settings:
+  gosec:
+    excludes:
+      - G401 # Detect the usage of MD5 or SHA1
+      - G505 # Import blocklist: crypto/sha1
+      - G306
   gci:
     # Section configuration to compare against.
     # Section names are case-insensitive and may contain parameters in ().

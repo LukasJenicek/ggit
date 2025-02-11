@@ -9,7 +9,9 @@ func ParseIniConfig(content []byte) (map[string]map[string]any, error) {
 	cfgStruct := map[string]map[string]any{}
 
 	section := ""
+
 	var err error
+
 	lines := strings.Split(string(content), "\n")
 	for _, line := range lines {
 		if strings.TrimSpace(line) == "" {
