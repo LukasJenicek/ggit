@@ -8,8 +8,9 @@ import (
 )
 
 type Blob struct {
-	filename string
-	content  []byte
+	filename     string
+	content      []byte
+	isExecutable bool
 }
 
 func NewBlob(f *os.File, rootDir string) (*Blob, error) {
@@ -21,9 +22,20 @@ func NewBlob(f *os.File, rootDir string) (*Blob, error) {
 	// relative path to root folder
 	fPath := strings.Replace(f.Name(), rootDir+"/", "", 1)
 
+	i, err := os.Stat(f.Name())
+	if err != nil {
+		return nil, fmt.Errorf("stat file %s: %w", f.Name(), err)
+	}
+
+	isExecutable := false
+	if i.Mode().Perm()&0100 != 0 {
+		isExecutable = true
+	}
+
 	return &Blob{
-		filename: fPath,
-		content:  content,
+		filename:     fPath,
+		content:      content,
+		isExecutable: isExecutable,
 	}, nil
 }
 

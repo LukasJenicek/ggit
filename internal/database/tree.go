@@ -20,6 +20,9 @@ func (bs blobs) Less(i, j int) bool {
 	return bs[i].filename < bs[j].filename
 }
 
+const regularMode = "100644"
+const executableMode = "100755"
+
 type Tree struct {
 	blobs blobs
 }
@@ -44,7 +47,12 @@ func (t *Tree) Content() []byte {
 
 	content := ""
 	for _, blob := range t.blobs {
-		content += fmt.Sprintf("%s %s\x00%s", "100644", blob.filename, blob.ID())
+		mode := regularMode
+		if blob.isExecutable {
+			mode = executableMode
+		}
+
+		content += fmt.Sprintf("%s %s\x00%s", mode, blob.filename, blob.ID())
 	}
 
 	return []byte(fmt.Sprintf("tree %d\x00%s", len([]byte(content)), []byte(content)))
