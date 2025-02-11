@@ -3,13 +3,12 @@ package database
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 )
 
 type AtomicFileWriter struct{}
 
 func (*AtomicFileWriter) Update(path string, content string) error {
-	lockPath := filepath.Join(path, ".lock")
+	lockPath := path + ".lock"
 
 	f, err := os.OpenFile(lockPath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0644)
 	if err != nil {
@@ -19,6 +18,10 @@ func (*AtomicFileWriter) Update(path string, content string) error {
 
 	if _, err := f.WriteString(content); err != nil {
 		return fmt.Errorf("writing to file %q: %w", lockPath, err)
+	}
+
+	if err := f.Sync(); err != nil {
+		return fmt.Errorf("sync to file %q: %w", lockPath, err)
 	}
 
 	if err = os.Rename(lockPath, path); err != nil {
