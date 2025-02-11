@@ -10,29 +10,21 @@ import (
 )
 
 type Refs struct {
+	fileWriter *AtomicFileWriter
+
 	gitDir string
 }
 
-func NewRefs(gitDir string) (*Refs, error) {
+func NewRefs(gitDir string, fileWriter *AtomicFileWriter) (*Refs, error) {
 	if gitDir == "" {
 		return nil, errors.New("gitDir is empty")
 	}
 
-	return &Refs{gitDir: gitDir}, nil
+	return &Refs{gitDir: gitDir, fileWriter: fileWriter}, nil
 }
 
 func (r *Refs) UpdateHead(commitId string) error {
-	f, err := os.Create(r.headPath())
-	if err != nil {
-		return fmt.Errorf("could not open HEAD file: %w", err)
-	}
-	defer f.Close()
-
-	if _, err = f.WriteString(commitId); err != nil {
-		return fmt.Errorf("could not write to HEAD file: %w", err)
-	}
-
-	return nil
+	return r.fileWriter.Update(r.headPath(), commitId)
 }
 
 func (r *Refs) Current() (string, error) {
