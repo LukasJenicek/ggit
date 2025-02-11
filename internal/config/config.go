@@ -17,7 +17,7 @@ type User struct {
 	Name  string `config:"name"`
 }
 
-func LoadConfig() (*Config, error) {
+func LoadGitConfig() (*Config, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return nil, fmt.Errorf("could not get home directory: %w", err)
