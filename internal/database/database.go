@@ -53,6 +53,11 @@ func (d *Database) writeObject(oid string, content []byte) error {
 		}
 	}
 
+	// object already exist do not overwrite
+	if _, err := os.Stat(realPath); err == nil {
+		return nil
+	}
+
 	// zlib compression with best speed
 	var compressed bytes.Buffer
 	zlibWriter, err := zlib.NewWriterLevel(&compressed, zlib.BestSpeed)
