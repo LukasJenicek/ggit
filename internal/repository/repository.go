@@ -106,7 +106,9 @@ func (r *Repository) Commit() error {
 	now := time.Now()
 	author := database.NewAuthor("lukas.jenicek5@gmail.com", "Lukas Jenicek", &now)
 
-	c := database.NewCommit(hex.EncodeToString(t.ID()), author, "all")
+	commitMessage := "all"
+
+	c := database.NewCommit(hex.EncodeToString(t.ID()), author, commitMessage)
 	if err := r.Database.Store(c); err != nil {
 		return fmt.Errorf("store commit: %w", err)
 	}
@@ -122,7 +124,7 @@ func (r *Repository) Commit() error {
 		return fmt.Errorf("write HEAD file: %w", err)
 	}
 
-	fmt.Println("commit successfully ", cID, " ", "all")
+	fmt.Println("commit successfully ", cID, " ", commitMessage)
 
 	return nil
 }
