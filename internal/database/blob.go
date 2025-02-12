@@ -28,7 +28,7 @@ func NewBlob(f *os.File, rootDir string) (*Blob, error) {
 	}
 
 	isExecutable := false
-	if i.Mode().Perm()&0100 != 0 {
+	if i.Mode().Perm()&0o100 != 0 {
 		isExecutable = true
 	}
 

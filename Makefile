@@ -1,9 +1,11 @@
 GOLANGCI-VERSION = v1.63.4
 
 build:
-	go build -o /home/lj/.local/bin/ggit cmd/main.go
+	go build -o ./bin/ggit cmd/main.go
 	go build -o ./bin/inflate cmd/utils/inflate/main.go
 
+install:
+	go build -o /home/lj/.local/bin/ggit cmd/main.go
 
 test:
 	go test -race -shuffle=on -v ./...

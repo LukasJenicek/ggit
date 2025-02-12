@@ -29,12 +29,13 @@ func (w Workspace) ListFiles() ([]*File, error) {
 	files := []*File{}
 
 	err := filepath.WalkDir(w.Cwd, func(path string, d fs.DirEntry, err error) error {
-		if slices.Contains(ignore, path) {
-			return nil
-		}
-
 		if slices.Contains(ignore, d.Name()) {
 			return filepath.SkipDir
+		}
+
+		// do not include root folder name
+		if filepath.Base(w.Cwd) == d.Name() {
+			return nil
 		}
 
 		if !d.IsDir() {

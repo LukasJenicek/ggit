@@ -20,8 +20,10 @@ func (bs blobs) Less(i, j int) bool {
 	return bs[i].filename < bs[j].filename
 }
 
-const regularMode = "100644"
-const executableMode = "100755"
+const (
+	regularMode    = "100644"
+	executableMode = "100755"
+)
 
 type Tree struct {
 	blobs blobs
@@ -46,6 +48,7 @@ func (t *Tree) Content() []byte {
 	sort.Sort(t.blobs)
 
 	content := ""
+
 	for _, blob := range t.blobs {
 		mode := regularMode
 		if blob.isExecutable {

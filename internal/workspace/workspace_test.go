@@ -1,48 +1,54 @@
 package workspace_test
 
 import (
-	"fmt"
-	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/LukasJenicek/ggit/internal/helpers"
 	"github.com/LukasJenicek/ggit/internal/workspace"
 )
 
 func TestWorkspace_ListFiles(t *testing.T) {
 	t.Parallel()
 
-	w := workspace.New("/tmp")
-
-	projectRootFolder, err := getProjectRootFolder()
+	projectRootFolder, err := helpers.GetProjectRootFolder()
 	if err != nil {
 		t.Error(err)
 	}
 
 	testDataFolder := filepath.Join(projectRootFolder, "testdata")
 
+	w := workspace.New(testDataFolder)
+
 	files, err := w.ListFiles()
 	if err != nil {
 		t.Errorf("list files: %s", err)
 	}
 
-	expectedFiles := []string{
-		testDataFolder + "/a/a.txt",
-		testDataFolder + "/a.txt",
-		testDataFolder + "/b/b.txt",
+	expectedFiles := []*workspace.File{
+		{
+			Path: "/home/lj/Projects/LukasJenicek/ggit/testdata/a",
+			Dir:  true,
+		},
+		{
+			Path: "/home/lj/Projects/LukasJenicek/ggit/testdata/a/a.txt",
+			Dir:  false,
+		},
+		{
+			Path: "/home/lj/Projects/LukasJenicek/ggit/testdata/a.txt",
+			Dir:  false,
+		},
+		{
+			Path: "/home/lj/Projects/LukasJenicek/ggit/testdata/b",
+			Dir:  true,
+		},
+		{
+			Path: "/home/lj/Projects/LukasJenicek/ggit/testdata/b/b.txt",
+			Dir:  false,
+		},
 	}
 
 	assert.EqualValues(t, expectedFiles, files)
-}
-
-func getProjectRootFolder() (string, error) {
-	getwd, err := os.Getwd()
-	if err != nil {
-		return "", fmt.Errorf("get working directory: %w", err)
-	}
-
-	return strings.Replace(getwd, "/internal/workspace", "", 1), nil
 }

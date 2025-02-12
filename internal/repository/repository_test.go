@@ -6,23 +6,47 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/LukasJenicek/ggit/internal/config"
+	"github.com/LukasJenicek/ggit/internal/database"
 	"github.com/LukasJenicek/ggit/internal/filesystem/memory"
 	"github.com/LukasJenicek/ggit/internal/repository"
+	"github.com/LukasJenicek/ggit/internal/workspace"
 )
 
 func TestNew(t *testing.T) {
 	t.Parallel()
+
+	cwd := "/home/test"
+	gitPath := cwd + "/.git"
 
 	t.Run("NotInitialized", func(t *testing.T) {
 		t.Parallel()
 
 		fs := memory.New()
 
-		repo, err := repository.New(fs, "/home/test/")
+		repo, err := repository.New(fs, cwd)
+		require.NoError(t, err)
+
+		refs, err := database.NewRefs(gitPath, &database.AtomicFileWriter{})
 		require.NoError(t, err)
 
 		require.NotNil(t, repo)
-		require.EqualValues(t, &repository.Repository{Cwd: "/home/test/", RootDir: "/home/test/", Initialized: false, FS: fs}, repo)
+		require.EqualValues(t, &repository.Repository{
+			FS:        fs,
+			Workspace: workspace.New(cwd),
+			Database:  database.New(gitPath),
+			Refs:      refs,
+			Config: &config.Config{
+				User: &config.User{
+					Name:  "Lukas Jenicek",
+					Email: "lukas.jenicek5@gmail.com",
+				},
+			},
+			Cwd:         cwd,
+			RootDir:     cwd,
+			GitPath:     gitPath,
+			Initialized: false,
+		}, repo)
 	})
 
 	t.Run("AlreadyInitialized", func(t *testing.T) {
@@ -32,11 +56,29 @@ func TestNew(t *testing.T) {
 		err := fs.Mkdir("/home/test/.git", os.ModePerm)
 		require.NoError(t, err)
 
-		repo, err := repository.New(fs, "/home/test/")
+		repo, err := repository.New(fs, cwd)
+		require.NoError(t, err)
+		require.NotNil(t, repo)
+
+		refs, err := database.NewRefs(gitPath, &database.AtomicFileWriter{})
 		require.NoError(t, err)
 
-		require.NotNil(t, repo)
-		require.EqualValues(t, &repository.Repository{Cwd: "/home/test/", RootDir: "/home/test/", Initialized: true, FS: fs}, repo)
+		require.EqualValues(t, &repository.Repository{
+			FS:        fs,
+			Workspace: workspace.New(cwd),
+			Database:  database.New(gitPath),
+			Refs:      refs,
+			Config: &config.Config{
+				User: &config.User{
+					Name:  "Lukas Jenicek",
+					Email: "lukas.jenicek5@gmail.com",
+				},
+			},
+			Cwd:         cwd,
+			RootDir:     cwd,
+			GitPath:     gitPath,
+			Initialized: true,
+		}, repo)
 	})
 }
 
