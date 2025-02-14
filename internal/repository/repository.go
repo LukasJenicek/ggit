@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/LukasJenicek/ggit/internal/config"
@@ -83,39 +85,19 @@ func (r *Repository) Init() error {
 }
 
 func (r *Repository) Commit() error {
-	files, err := r.Workspace.ListFiles()
+	entries, err := r.saveBlobs()
 	if err != nil {
-		return fmt.Errorf("list files: %w", err)
+		return fmt.Errorf("save blobs: %w", err)
 	}
 
-	blobs := make([]*database.Blob, 0, len(files))
-
-	for _, file := range files {
-		// TODO: Dirs not handled at the moment
-		if file.Dir {
-			continue
-		}
-
-		f, err := os.Open(file.Path)
-		if err != nil {
-			return fmt.Errorf("open file %s: %w", file.Path, err)
-		}
-
-		b, err := database.NewBlob(f, r.RootDir)
-		if err != nil {
-			return fmt.Errorf("create blob %s: %w", file.Path, err)
-		}
-
-		if err := r.Database.Store(b); err != nil {
-			return fmt.Errorf("store blob %s: %w", file.Path, err)
-		}
-
-		blobs = append(blobs, b)
+	root, err := database.Build(database.NewTree(nil, ""), entries)
+	if err != nil {
+		return fmt.Errorf("build tree: %w", err)
 	}
 
-	t := database.NewTree(blobs)
-	if err := r.Database.Store(t); err != nil {
-		return fmt.Errorf("store tree: %w", err)
+	rootID, err := r.Database.StoreTree(root)
+	if err != nil {
+		return fmt.Errorf("store tree structure: %w", err)
 	}
 
 	now := time.Now()
@@ -129,21 +111,83 @@ func (r *Repository) Commit() error {
 		return fmt.Errorf("get current commit: %w", err)
 	}
 
-	c, err := database.NewCommit(hex.EncodeToString(t.ID()), author, commitMessage, headCommit)
+	c, err := database.NewCommit(hex.EncodeToString(rootID), author, commitMessage, headCommit)
 	if err != nil {
 		return fmt.Errorf("create commit: %w", err)
 	}
 
-	if err := r.Database.Store(c); err != nil {
+	commitID, err := r.Database.Store(c)
+	if err != nil {
 		return fmt.Errorf("store commit: %w", err)
 	}
 
-	cID := hex.EncodeToString(c.ID())
+	cID := hex.EncodeToString(commitID)
 	if err = r.Refs.UpdateHead(cID); err != nil {
 		return fmt.Errorf("update head: %w", err)
 	}
 
-	fmt.Println("commit successfully ", cID, " ", commitMessage)
+	fmt.Println("commit successfully", cID, commitMessage)
 
 	return nil
+}
+
+func (r *Repository) saveBlobs() ([]*database.Entry, error) {
+	files, err := r.Workspace.ListFiles()
+	if err != nil {
+		return nil, fmt.Errorf("list files: %w", err)
+	}
+
+	entries := make([]*database.Entry, 0, len(files))
+
+	for _, file := range files {
+		if file.Dir {
+			continue
+		}
+
+		entry, err := r.saveBlob(file)
+		if err != nil {
+			return nil, fmt.Errorf("save blob: %w", err)
+		}
+
+		entries = append(entries, entry)
+	}
+
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].Name < entries[j].Name
+	})
+
+	return entries, nil
+}
+
+func (r *Repository) saveBlob(file *workspace.File) (*database.Entry, error) {
+	f, err := os.Open(file.Path)
+	if err != nil {
+		return nil, fmt.Errorf("open file %s: %w", file.Path, err)
+	}
+
+	defer f.Close()
+
+	content, err := os.ReadFile(f.Name())
+	if err != nil {
+		return nil, fmt.Errorf("read file content: %w", err)
+	}
+
+	relativeFilePath := strings.Replace(f.Name(), r.RootDir+"/", "", 1)
+
+	i, err := os.Stat(f.Name())
+	if err != nil {
+		return nil, fmt.Errorf("stat file %s: %w", f.Name(), err)
+	}
+
+	executable := false
+	if i.Mode().Perm()&0o100 != 0 {
+		executable = true
+	}
+
+	oid, err := r.Database.Store(database.NewBlob(content))
+	if err != nil {
+		return nil, fmt.Errorf("store blob %s: %w", file.Path, err)
+	}
+
+	return database.NewEntry(relativeFilePath, oid, executable), nil
 }

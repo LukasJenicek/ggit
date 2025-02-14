@@ -3,7 +3,9 @@ package database
 import (
 	"bytes"
 	"compress/zlib"
+	"crypto/sha1"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -15,9 +17,7 @@ type Database struct {
 }
 
 type Object interface {
-	ID() []byte
-	Type() string
-	Content() []byte
+	Content() ([]byte, error)
 }
 
 func New(gitDir string) *Database {
@@ -27,15 +27,53 @@ func New(gitDir string) *Database {
 	}
 }
 
-func (d *Database) Store(o Object) error {
-	c := o.Content()
-	oid := o.ID()
-
-	if len(oid) != 20 {
-		return fmt.Errorf("sha1 hash must have 20 bytes, invalid object id: %s", oid)
+func (d *Database) StoreTree(root *Tree) ([]byte, error) {
+	if root == nil {
+		return nil, errors.New("root tree must be provided")
 	}
 
-	return d.writeObject(hex.EncodeToString(oid), c)
+	trees := findTrees(root)
+	// start from end
+	for i := len(trees) - 1; i >= 0; i-- {
+		t := trees[i]
+
+		oid, err := d.Store(t)
+		if err != nil {
+			return nil, fmt.Errorf("store tree: %w", err)
+		}
+
+		t.oid = oid
+	}
+
+	oid, err := d.Store(root)
+	if err != nil {
+		return nil, fmt.Errorf("store root: %w", err)
+	}
+
+	return oid, nil
+}
+
+func (d *Database) Store(o Object) ([]byte, error) {
+	c, err := o.Content()
+	if err != nil {
+		return nil, fmt.Errorf("get object content: %w", err)
+	}
+
+	hasher := sha1.New()
+	hasher.Write(c)
+
+	oid := hasher.Sum(nil)
+
+	if len(oid) != 20 {
+		return nil, fmt.Errorf("sha1 hash must have 20 bytes, invalid object id: %s", oid)
+	}
+
+	err = d.writeObject(hex.EncodeToString(oid), c)
+	if err != nil {
+		return nil, fmt.Errorf("store object: %w", err)
+	}
+
+	return oid, nil
 }
 
 func (d *Database) writeObject(oid string, content []byte) error {
