@@ -1,61 +1,89 @@
 package database
 
 import (
-	"crypto/sha1"
 	"fmt"
-	"sort"
+	"path/filepath"
+	"strings"
 )
 
-type blobs []*Blob
-
-func (bs blobs) Len() int {
-	return len(bs)
-}
-
-func (bs blobs) Swap(i, j int) {
-	bs[i], bs[j] = bs[j], bs[i]
-}
-
-func (bs blobs) Less(i, j int) bool {
-	return bs[i].filename < bs[j].filename
-}
-
-const (
-	regularMode    = "100644"
-	executableMode = "100755"
-)
+const regularMode = "100644"
+const executableMode = "100755"
+const directoryMode = "40000"
 
 type Tree struct {
-	blobs blobs
+	// could be either Entry or Tree
+	entries []Object
 }
 
-func NewTree(blobs []*Blob) *Tree {
-	return &Tree{blobs: blobs}
+// Build
+// Recursive tree out of sorted entries slice
+func Build(root *Tree, entries []*Entry) *Tree {
+	treeMapCache := make(map[string]*Tree)
+
+	for _, entry := range entries {
+		d := filepath.Dir(entry.Name)
+		// root folder
+		if d == "." {
+			root.AddEntry(entry)
+			continue
+		}
+
+		t, ok := treeMapCache[d]
+		if !ok {
+			t = NewTree()
+			treeMapCache[d] = t
+
+			paths := strings.Split(d, "/")
+			if len(paths) == 1 {
+				root.AddEntry(t)
+			} else {
+				tPath := strings.Join(paths[:len(paths)-1], "/")
+				r, ok := treeMapCache[tPath]
+				if !ok {
+					panic(fmt.Sprintf("tree map entry %q not found", entry.Name))
+				}
+				r.AddEntry(t)
+			}
+		}
+		t.AddEntry(entry)
+	}
+
+	return root
 }
 
-func (t *Tree) ID() []byte {
-	hasher := sha1.New()
-	hasher.Write(t.Content())
-
-	return hasher.Sum(nil)
+type Entry struct {
+	Name       string
+	oid        []byte
+	executable bool
 }
 
-func (t *Tree) Type() string {
-	return "tree"
+func NewEntry(name string, oid []byte, executable bool) *Entry {
+	return &Entry{
+		Name:       name,
+		oid:        oid,
+		executable: executable,
+	}
+}
+
+func (e *Entry) Content() []byte {
+	mode := regularMode
+	if e.executable {
+		mode = executableMode
+	}
+
+	return []byte(fmt.Sprintf("%s %s\x00%s", mode, e.Name, e.oid))
+}
+
+func NewTree() *Tree { return &Tree{} }
+
+func (t *Tree) AddEntry(entry Object) {
+	t.entries = append(t.entries, entry)
 }
 
 func (t *Tree) Content() []byte {
-	sort.Sort(t.blobs)
-
 	content := ""
-
-	for _, blob := range t.blobs {
-		mode := regularMode
-		if blob.isExecutable {
-			mode = executableMode
-		}
-
-		content += fmt.Sprintf("%s %s\x00%s", mode, blob.filename, blob.ID())
+	for _, entry := range t.entries {
+		content += string(entry.Content())
 	}
 
 	return []byte(fmt.Sprintf("tree %d\x00%s", len([]byte(content)), []byte(content)))

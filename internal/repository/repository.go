@@ -1,16 +1,16 @@
 package repository
 
 import (
-	"encoding/hex"
 	"fmt"
-	"os"
-	"path/filepath"
-	"time"
-
 	"github.com/LukasJenicek/ggit/internal/config"
 	"github.com/LukasJenicek/ggit/internal/database"
 	"github.com/LukasJenicek/ggit/internal/filesystem"
 	"github.com/LukasJenicek/ggit/internal/workspace"
+	"github.com/davecgh/go-spew/spew"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
 )
 
 // Repository
@@ -88,10 +88,8 @@ func (r *Repository) Commit() error {
 		return fmt.Errorf("list files: %w", err)
 	}
 
-	blobs := make([]*database.Blob, 0, len(files))
-
+	entries := make([]*database.Entry, 0, len(files))
 	for _, file := range files {
-		// TODO: Dirs not handled at the moment
 		if file.Dir {
 			continue
 		}
@@ -101,49 +99,100 @@ func (r *Repository) Commit() error {
 			return fmt.Errorf("open file %s: %w", file.Path, err)
 		}
 
-		b, err := database.NewBlob(f, r.RootDir)
+		content, err := os.ReadFile(f.Name())
+		if err != nil {
+			return fmt.Errorf("read file content: %w", err)
+		}
+
+		relativeFilePath := strings.Replace(f.Name(), r.RootDir+"/", "", 1)
+
+		i, err := os.Stat(f.Name())
+		if err != nil {
+			return fmt.Errorf("stat file %s: %w", f.Name(), err)
+		}
+
+		executable := false
+		if i.Mode().Perm()&0o100 != 0 {
+			executable = true
+		}
+
+		b, err := database.NewBlob(content)
 		if err != nil {
 			return fmt.Errorf("create blob %s: %w", file.Path, err)
 		}
 
-		if err := r.Database.Store(b); err != nil {
+		oid, err := r.Database.Store(b)
+		if err != nil {
 			return fmt.Errorf("store blob %s: %w", file.Path, err)
 		}
 
-		blobs = append(blobs, b)
+		entries = append(entries, database.NewEntry(relativeFilePath, oid, executable))
 	}
 
-	t := database.NewTree(blobs)
-	if err := r.Database.Store(t); err != nil {
-		return fmt.Errorf("store tree: %w", err)
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].Name < entries[j].Name
+	})
+
+	spew.Dump(entries)
+
+	entriesMap := make(map[string]database.Object)
+	for _, entry := range entries {
+		d := filepath.Dir(entry.Name)
+
+		// root folder
+		if d == "." {
+			entriesMap[entry.Name] = entry
+			continue
+		}
+
+		t, ok := entriesMap[d]
+		if !ok {
+			t = database.NewTree()
+			entriesMap[d] = t
+		}
+
+		tree, ok := t.(*database.Tree)
+		if !ok {
+			return fmt.Errorf("unexpected type %T", t)
+		}
+
+		tree.AddEntry(entry)
 	}
-
-	now := time.Now()
-	author := database.NewAuthor(r.Config.User.Email, r.Config.User.Name, &now)
-
-	// TODO: read from file or cmd argument
-	commitMessage := "all"
-
-	headCommit, err := r.Refs.Current()
-	if err != nil {
-		return fmt.Errorf("get current commit: %w", err)
-	}
-
-	c, err := database.NewCommit(hex.EncodeToString(t.ID()), author, commitMessage, headCommit)
-	if err != nil {
-		return fmt.Errorf("create commit: %w", err)
-	}
-
-	if err := r.Database.Store(c); err != nil {
-		return fmt.Errorf("store commit: %w", err)
-	}
-
-	cID := hex.EncodeToString(c.ID())
-	if err = r.Refs.UpdateHead(cID); err != nil {
-		return fmt.Errorf("update head: %w", err)
-	}
-
-	fmt.Println("commit successfully ", cID, " ", commitMessage)
 
 	return nil
+	//
+
+	//root := database.NewTree(entries)
+	//if err := r.Database.Store(root); err != nil {
+	//	return fmt.Errorf("store tree: %w", err)
+	//}
+	//
+	//now := time.Now()
+	//author := database.NewAuthor(r.Config.User.Email, r.Config.User.Name, &now)
+	//
+	//// TODO: read from file or cmd argument
+	//commitMessage := "all"
+	//
+	//headCommit, err := r.Refs.Current()
+	//if err != nil {
+	//	return fmt.Errorf("get current commit: %w", err)
+	//}
+	//
+	//c, err := database.NewCommit(hex.EncodeToString(root.ID()), author, commitMessage, headCommit)
+	//if err != nil {
+	//	return fmt.Errorf("create commit: %w", err)
+	//}
+	//
+	//if err := r.Database.Store(c); err != nil {
+	//	return fmt.Errorf("store commit: %w", err)
+	//}
+	//
+	//cID := hex.EncodeToString(c.ID())
+	//if err = r.Refs.UpdateHead(cID); err != nil {
+	//	return fmt.Errorf("update head: %w", err)
+	//}
+	//
+	//fmt.Println("commit successfully ", cID, " ", commitMessage)
+	//
+	//return nil
 }

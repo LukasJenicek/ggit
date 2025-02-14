@@ -3,6 +3,7 @@ package database
 import (
 	"bytes"
 	"compress/zlib"
+	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
 	"os"
@@ -15,8 +16,6 @@ type Database struct {
 }
 
 type Object interface {
-	ID() []byte
-	Type() string
 	Content() []byte
 }
 
@@ -27,15 +26,24 @@ func New(gitDir string) *Database {
 	}
 }
 
-func (d *Database) Store(o Object) error {
+func (d *Database) Store(o Object) ([]byte, error) {
 	c := o.Content()
-	oid := o.ID()
+
+	hasher := sha1.New()
+	hasher.Write(c)
+
+	oid := hasher.Sum(nil)
 
 	if len(oid) != 20 {
-		return fmt.Errorf("sha1 hash must have 20 bytes, invalid object id: %s", oid)
+		return nil, fmt.Errorf("sha1 hash must have 20 bytes, invalid object id: %s", oid)
 	}
 
-	return d.writeObject(hex.EncodeToString(oid), c)
+	err := d.writeObject(hex.EncodeToString(oid), c)
+	if err != nil {
+		return nil, fmt.Errorf("store object: %w", err)
+	}
+
+	return oid, nil
 }
 
 func (d *Database) writeObject(oid string, content []byte) error {

@@ -1,16 +1,12 @@
 package main
 
 import (
-	"github.com/davecgh/go-spew/spew"
-
-	"github.com/LukasJenicek/ggit/internal/config"
+	"fmt"
+	"path/filepath"
 )
 
 func main() {
-	cfg, err := config.LoadGitConfig()
-	if err != nil {
-		panic(err)
-	}
+	path := "libs/internal/haha.txt"
 
-	spew.Dump(cfg)
+	fmt.Println(filepath.Dir(path))
 }
