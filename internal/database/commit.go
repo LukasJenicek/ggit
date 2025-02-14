@@ -1,7 +1,6 @@
 package database
 
 import (
-	"crypto/sha1"
 	"errors"
 	"fmt"
 	"strings"
@@ -31,18 +30,7 @@ func NewCommit(treeOid string, author *Author, message string, parent string) (*
 	}, nil
 }
 
-func (c *Commit) ID() []byte {
-	hasher := sha1.New()
-	hasher.Write(c.Content())
-
-	return hasher.Sum(nil)
-}
-
-func (c *Commit) Type() string {
-	return "commit"
-}
-
-func (c *Commit) Content() []byte {
+func (c *Commit) Content() ([]byte, error) {
 	lines := []string{"tree " + c.treeOid}
 	if c.parent != "" {
 		lines = append(lines, "parent "+c.parent)
@@ -54,5 +42,5 @@ func (c *Commit) Content() []byte {
 	content := strings.Join(lines, "\n")
 	content += "\n"
 
-	return []byte(fmt.Sprintf("%s %d\x00%s", c.Type(), len(content), content))
+	return []byte(fmt.Sprintf("%s %d\x00%s", "commit", len(content), content)), nil
 }
