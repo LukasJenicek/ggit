@@ -27,14 +27,21 @@ func New(gitDir string) *Database {
 	}
 }
 
+// StoreTree stores a tree and all its subtrees in the database.
+// It uses a bottom-up approach, storing child trees before their parents
+// to ensure all references are valid when storing the root tree.
+// findTrees gives us list of trees that needs to be created before I can create their parent.
+// I just process the slice in reverse order
 func (d *Database) StoreTree(root *Tree) ([]byte, error) {
 	if root == nil {
 		return nil, errors.New("root tree must be provided")
 	}
 
+	// TODO: Use queue and reverse the order ? Would be more memory efficient
 	trees := findTrees(root)
 	// start from end
 	for i := len(trees) - 1; i >= 0; i-- {
+		// TODO: detect circular reference ???
 		t := trees[i]
 
 		oid, err := d.Store(t)
@@ -59,6 +66,8 @@ func (d *Database) Store(o Object) ([]byte, error) {
 		return nil, fmt.Errorf("get object content: %w", err)
 	}
 
+	// TODO: move to SHA256, check backward compatibility with git implementation
+	// See: https://shattered.io/
 	hasher := sha1.New()
 	hasher.Write(c)
 
