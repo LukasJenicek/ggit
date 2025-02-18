@@ -39,7 +39,7 @@ func main() {
 			log.Fatalf("ggit init: %v", err)
 		}
 
-		fmt.Printf("ggit init succeeded\n")
+		fmt.Println("Initialized empty Git repository in", repo.GitPath)
 	case "commit":
 		if err = repo.Commit(); err != nil {
 			log.Fatalf("commit: %v", err)
