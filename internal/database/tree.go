@@ -126,7 +126,9 @@ func findLeaves(parent *Tree) []*Tree {
 	return leaves
 }
 
-// Tree points to parent, so I can traverse the tree in reverse from the node leaf to parent.
+// Build constructs a recursive tree structure from a sorted slice of entries.
+// It maintains parent-child relationships allowing traversal from leaf nodes to the root.
+// The entries must be sorted by name to ensure consistent tree building.
 func Build(root *Tree, entries []*Entry) (*Tree, error) {
 	treeCache := make(map[string]*Tree)
 
