@@ -14,21 +14,44 @@ func TestBuildTree(t *testing.T) {
 	root := database.NewTree(nil, "")
 
 	entries := []*database.Entry{}
-	entries = append(entries, database.NewEntry("hello.txt", []byte{0xde, 0xad, 0xbe, 0xef}, false))
-	entries = append(entries, database.NewEntry("libs/hello.txt", []byte{0xde, 0xad, 0xbe, 0xef}, false))
-	entries = append(entries, database.NewEntry("libs/internal/internal.txt", []byte{0xde, 0xad, 0xbe, 0xef}, false))
-	entries = append(entries, database.NewEntry("world.txt", []byte{0xde, 0xad, 0xbe, 0xef}, false))
+
+	content := []byte{0xde, 0xad, 0xbe, 0xef, 0xef, 0xef, 0xef, 0xef, 0xef, 0xef, 0xad, 0xde, 0xa, 0xbe, 0xef, 0xad, 0xad, 0xef, 0xef, 0xde}
+
+	entry, err := database.NewEntry("hello.txt", content, false)
+	require.NoError(t, err)
+	entries = append(entries, entry)
+
+	entry, err = database.NewEntry("libs/hello.txt", content, false)
+	require.NoError(t, err)
+	entries = append(entries, entry)
+
+	entry, err = database.NewEntry("libs/internal/internal.txt", content, false)
+	require.NoError(t, err)
+	entries = append(entries, entry)
+
+	entry, err = database.NewEntry("world.txt", content, false)
+	require.NoError(t, err)
+	entries = append(entries, entry)
 
 	want := database.NewTree(nil, "")
-	want.AddEntry(database.NewEntry("hello.txt", []byte{0xde, 0xad, 0xbe, 0xef}, false))
+	entry, err = database.NewEntry("hello.txt", content, false)
+	require.NoError(t, err)
+	want.AddEntry(entry)
 
 	libsTree := database.NewTree(want, "libs")
-	libsTree.AddEntry(database.NewEntry("libs/hello.txt", []byte{0xde, 0xad, 0xbe, 0xef}, false))
+	entry, err = database.NewEntry("libs/hello.txt", content, false)
+	require.NoError(t, err)
+	libsTree.AddEntry(entry)
+
 	libsInternalTree := database.NewTree(libsTree, "internal")
-	libsInternalTree.AddEntry(database.NewEntry("libs/internal/internal.txt", []byte{0xde, 0xad, 0xbe, 0xef}, false))
+	entry, err = database.NewEntry("libs/internal/internal.txt", content, false)
+	require.NoError(t, err)
+	libsInternalTree.AddEntry(entry)
 	libsTree.AddEntry(libsInternalTree)
 	want.AddEntry(libsTree)
-	want.AddEntry(database.NewEntry("world.txt", []byte{0xde, 0xad, 0xbe, 0xef}, false))
+	entry, err = database.NewEntry("world.txt", content, false)
+	require.NoError(t, err)
+	want.AddEntry(entry)
 
 	build, err := database.Build(root, entries)
 
