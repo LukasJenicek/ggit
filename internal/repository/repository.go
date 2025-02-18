@@ -189,5 +189,5 @@ func (r *Repository) saveBlob(file *workspace.File) (*database.Entry, error) {
 		return nil, fmt.Errorf("store blob %s: %w", file.Path, err)
 	}
 
-	return database.NewEntry(relativeFilePath, oid, executable), nil
+	return database.NewEntry(relativeFilePath, oid, executable)
 }

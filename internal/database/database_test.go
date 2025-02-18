@@ -15,30 +15,31 @@ func TestDatabase_StoreRootTree(t *testing.T) {
 
 	root := database.NewTree(nil, "")
 
+	content := []byte{0xde, 0xad, 0xbe, 0xef, 0xef, 0xef, 0xef, 0xef, 0xef, 0xef, 0xad, 0xde, 0xa, 0xbe, 0xef, 0xad, 0xad, 0xef, 0xef, 0xde}
+
 	docsTree := database.NewTree(root, "docs")
-	docsTree.AddEntry(
-		database.NewEntry("docs.txt", []byte{0xde, 0xad, 0xbe, 0xef}, false),
-	)
+	entry, err := database.NewEntry("docs.txt", content, false)
+	require.NoError(t, err)
+	docsTree.AddEntry(entry)
 
 	root.AddEntry(docsTree)
-	root.AddEntry(
-		database.NewEntry("hello.txt", []byte{0xde, 0xad, 0xbe, 0xef}, false),
-	)
+	entry, err = database.NewEntry("hello.txt", content, false)
+	require.NoError(t, err)
+	root.AddEntry(entry)
 
 	libsTree := database.NewTree(root, "libs")
-	libsTree.AddEntry(
-		database.NewEntry("hello.txt", []byte{0xde, 0xad, 0xbe, 0xef}, false),
-	)
+	entry, err = database.NewEntry("hello.txt", content, false)
+	require.NoError(t, err)
+	libsTree.AddEntry(entry)
 
 	libsInternalTree := database.NewTree(libsTree, "libs/internal")
-	libsInternalTree.AddEntry(
-		database.NewEntry("internal.txt", []byte{0xde, 0xad, 0xbe, 0xef}, false),
-	)
+	entry, err = database.NewEntry("internal.txt", content, false)
+	require.NoError(t, err)
+	libsInternalTree.AddEntry(entry)
 	libsTree.AddEntry(libsInternalTree)
 
 	root.AddEntry(libsTree)
 
-	_, err := d.StoreTree(root)
-
+	_, err = d.StoreTree(root)
 	require.NoError(t, err)
 }

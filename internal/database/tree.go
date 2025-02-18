@@ -18,12 +18,20 @@ type Entry struct {
 	executable bool
 }
 
-func NewEntry(name string, oid []byte, executable bool) *Entry {
+func NewEntry(name string, oid []byte, executable bool) (*Entry, error) {
+	if strings.TrimSpace(name) == "" {
+		return nil, fmt.Errorf("entry name cannot be empty")
+	}
+
+	if len(oid) != 20 {
+		return nil, fmt.Errorf("invalid oid length: expected 20 bytes, got %d", len(oid))
+	}
+
 	return &Entry{
 		Name:       name,
 		oid:        oid,
 		executable: executable,
-	}
+	}, nil
 }
 
 func (e *Entry) Content() ([]byte, error) {
@@ -63,7 +71,7 @@ func (t *Tree) Content() ([]byte, error) {
 		tree, ok := entry.(*Tree)
 		if ok {
 			if string(tree.oid) == "" {
-				panic("tree has no oid")
+				return nil, fmt.Errorf("tree %s has no oid", t.name)
 			}
 
 			content += fmt.Sprintf("%s %s\x00%s", directoryMode, tree.name, tree.oid)
