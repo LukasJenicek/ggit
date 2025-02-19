@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/LukasJenicek/ggit/internal/clock"
 	"github.com/LukasJenicek/ggit/internal/config"
 	"github.com/LukasJenicek/ggit/internal/database"
 	"github.com/LukasJenicek/ggit/internal/filesystem"
@@ -23,6 +24,7 @@ type Repository struct {
 	Database  *database.Database
 	Refs      *database.Refs
 	Config    *config.Config
+	Clock     clock.Clock
 
 	Cwd         string
 	RootDir     string
@@ -30,7 +32,7 @@ type Repository struct {
 	Initialized bool
 }
 
-func New(fs filesystem.Fs, cwd string) (*Repository, error) {
+func New(fs filesystem.Fs, clock clock.Clock, cwd string) (*Repository, error) {
 	var initialized bool
 
 	gitDir := filepath.Join(cwd, ".git")
@@ -53,15 +55,16 @@ func New(fs filesystem.Fs, cwd string) (*Repository, error) {
 		return nil, fmt.Errorf("load git config: %w", err)
 	}
 
-	refs, err := database.NewRefs(gitDir, &database.AtomicFileWriter{})
+	refs, err := database.NewRefs(fs, gitDir, filesystem.NewAtomicFileWriter(fs))
 	if err != nil {
 		return nil, fmt.Errorf("init refs: %w", err)
 	}
 
 	return &Repository{
 		FS:          fs,
-		Workspace:   workspace.New(cwd),
-		Database:    database.New(gitDir),
+		Workspace:   workspace.New(cwd, fs),
+		Database:    database.New(fs, gitDir),
+		Clock:       clock,
 		Refs:        refs,
 		Config:      cfg,
 		RootDir:     cwd,
@@ -84,20 +87,20 @@ func (r *Repository) Init() error {
 	return nil
 }
 
-func (r *Repository) Commit() error {
+func (r *Repository) Commit() (string, error) {
 	entries, err := r.saveBlobs()
 	if err != nil {
-		return fmt.Errorf("save blobs: %w", err)
+		return "", fmt.Errorf("save blobs: %w", err)
 	}
 
 	root, err := database.Build(database.NewTree(nil, ""), entries)
 	if err != nil {
-		return fmt.Errorf("build tree: %w", err)
+		return "", fmt.Errorf("build tree: %w", err)
 	}
 
 	rootID, err := r.Database.StoreTree(root)
 	if err != nil {
-		return fmt.Errorf("store tree structure: %w", err)
+		return "", fmt.Errorf("store tree structure: %w", err)
 	}
 
 	now := time.Now()
@@ -108,27 +111,25 @@ func (r *Repository) Commit() error {
 
 	headCommit, err := r.Refs.Current()
 	if err != nil {
-		return fmt.Errorf("get current commit: %w", err)
+		return "", fmt.Errorf("get current commit: %w", err)
 	}
 
 	c, err := database.NewCommit(hex.EncodeToString(rootID), author, commitMessage, headCommit)
 	if err != nil {
-		return fmt.Errorf("create commit: %w", err)
+		return "", fmt.Errorf("create commit: %w", err)
 	}
 
 	commitID, err := r.Database.Store(c)
 	if err != nil {
-		return fmt.Errorf("store commit: %w", err)
+		return "", fmt.Errorf("store commit: %w", err)
 	}
 
 	cID := hex.EncodeToString(commitID)
 	if err = r.Refs.UpdateHead(cID); err != nil {
-		return fmt.Errorf("update head: %w", err)
+		return "", fmt.Errorf("update head: %w", err)
 	}
 
-	fmt.Println("commit successfully", cID, commitMessage)
-
-	return nil
+	return cID, nil
 }
 
 func (r *Repository) saveBlobs() ([]*database.Entry, error) {
@@ -160,27 +161,21 @@ func (r *Repository) saveBlobs() ([]*database.Entry, error) {
 }
 
 func (r *Repository) saveBlob(file *workspace.File) (*database.Entry, error) {
-	f, err := os.Open(file.Path)
-	if err != nil {
-		return nil, fmt.Errorf("open file %s: %w", file.Path, err)
-	}
-
-	defer f.Close()
-
-	content, err := os.ReadFile(f.Name())
+	content, err := r.FS.ReadFile(file.Path)
 	if err != nil {
 		return nil, fmt.Errorf("read file content: %w", err)
 	}
 
-	relativeFilePath := strings.Replace(f.Name(), r.RootDir+"/", "", 1)
+	// relative to root folder where the git was initialized
+	relativeFilePath := strings.Replace(file.Path, r.RootDir+"/", "", 1)
 
-	i, err := os.Stat(f.Name())
+	f, err := r.FS.Stat(file.Path)
 	if err != nil {
-		return nil, fmt.Errorf("stat file %s: %w", f.Name(), err)
+		return nil, fmt.Errorf("stat file %s: %w", file.Path, err)
 	}
 
 	executable := false
-	if i.Mode().Perm()&0o100 != 0 {
+	if f.Mode().Perm()&0o100 != 0 {
 		executable = true
 	}
 

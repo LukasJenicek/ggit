@@ -1,122 +1,119 @@
 package memory
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
-	"time"
+	"strings"
+	"testing/fstest"
+
+	"github.com/LukasJenicek/ggit/internal/filesystem"
 )
 
-// Fs represents a simple in-memory file system that supports file contents.
 type Fs struct {
-	fs map[string]os.FileInfo
-	// Store file content (in-memory)
-	contents map[string][]byte
+	fsys fstest.MapFS
+}
+
+type MockFile struct {
+	content  strings.Builder
+	isClosed bool
+}
+
+func (m *MockFile) WriteString(s string) (int, error) {
+	if m.isClosed {
+		return 0, errors.New("write to closed file")
+	}
+
+	return m.content.WriteString(s)
+}
+
+func (m *MockFile) Sync() error {
+	if m.isClosed {
+		return errors.New("sync on closed file")
+	}
+
+	return nil
+}
+
+func (m *MockFile) Close() error {
+	m.isClosed = true
+
+	return nil
 }
 
 // New creates a new in-memory file system.
-func New() *Fs {
+func New(fsys fstest.MapFS) *Fs {
 	return &Fs{
-		fs:       make(map[string]os.FileInfo),
-		contents: make(map[string][]byte),
+		fsys: fsys,
 	}
-}
-
-func (f *Fs) Get() map[string]os.FileInfo {
-	return f.fs
 }
 
 func (f *Fs) Stat(name string) (os.FileInfo, error) {
-	info, exists := f.fs[name]
-	if !exists {
-		return nil, fmt.Errorf("file not found: %s", name)
-	}
-
-	return info, nil
+	return f.fsys.Stat(name)
 }
 
-func (f *Fs) Mkdir(name string, perm os.FileMode) error {
-	if _, exists := f.fs[name]; exists {
-		return fmt.Errorf("directory already exists: %s", name)
-	}
-
-	// Create a new directory (represented by a dummy FileInfo object)
-	f.fs[name] = &FileInfo{
-		name:  name,
-		isDir: true,
-	}
-
-	return nil
+func (f *Fs) Open(name string) (fs.File, error) {
+	return f.fsys.Open(name)
 }
 
-func (f *Fs) CreateFile(name string, content []byte) error {
-	if _, exists := f.fs[name]; exists {
-		return fmt.Errorf("file already exists: %s", name)
+func (f *Fs) OpenFile(name string, flag int, perm os.FileMode) (filesystem.File, error) {
+	_, err := f.fsys.Open(name)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return nil, err
 	}
 
-	f.fs[name] = &FileInfo{
-		name:    name,
-		isDir:   false,
-		content: content,
+	if errors.Is(err, fs.ErrNotExist) {
+		f.fsys[name] = &fstest.MapFile{Data: nil, Mode: perm}
 	}
 
-	f.contents[name] = content
-
-	return nil
+	return &MockFile{
+		content:  strings.Builder{},
+		isClosed: false,
+	}, nil
 }
 
-func (f *Fs) WriteFile(name string, content []byte) error {
-	if _, exists := f.fs[name]; !exists {
-		return fmt.Errorf("file not found: %s", name)
-	}
-
-	f.contents[name] = content
-
-	return nil
+func (f *Fs) WalkDir(path string, walkDir fs.WalkDirFunc) error {
+	return fs.WalkDir(f.fsys, path, walkDir)
 }
 
 func (f *Fs) ReadFile(name string) ([]byte, error) {
-	content, exists := f.contents[name]
-	if !exists {
-		return nil, fmt.Errorf("file not found: %s", name)
+	return f.fsys.ReadFile(name)
+}
+
+func (f *Fs) Mkdir(name string, perm os.FileMode) error {
+	if _, err := f.fsys.Open(name); err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			return fmt.Errorf("open: %s", name)
+		}
 	}
 
-	return content, nil
+	f.fsys[name] = &fstest.MapFile{Mode: fs.ModeDir}
+
+	return nil
 }
 
-type FileInfo struct {
-	name    string
-	isDir   bool
-	content []byte
+func (f *Fs) WriteFile(name string, data []byte, perm os.FileMode) error {
+	f.fsys[name] = &fstest.MapFile{Data: data, Mode: fs.ModePerm}
+
+	return nil
 }
 
-func (fi *FileInfo) Name() string {
-	return fi.name
-}
-
-func (fi *FileInfo) Size() int64 {
-	if fi.isDir {
-		return 0
+func (f *Fs) Rename(oldpath, newpath string) error {
+	file, ok := f.fsys[oldpath]
+	if !ok {
+		return os.ErrNotExist
 	}
 
-	return int64(len(fi.content))
-}
-
-func (fi *FileInfo) Mode() os.FileMode {
-	if fi.isDir {
-		return os.ModeDir
+	// errors out when the file with the same name already exist
+	_, ok = f.fsys[newpath]
+	if ok {
+		return os.ErrExist
 	}
 
-	return 0
-}
+	delete(f.fsys, oldpath)
 
-func (fi *FileInfo) ModTime() time.Time {
-	return time.Now()
-}
+	f.fsys[newpath] = file
 
-func (fi *FileInfo) IsDir() bool {
-	return fi.isDir
-}
-
-func (fi *FileInfo) Sys() interface{} {
 	return nil
 }

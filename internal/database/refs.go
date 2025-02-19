@@ -7,28 +7,39 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/LukasJenicek/ggit/internal/filesystem"
 )
 
 type Refs struct {
-	fileWriter *AtomicFileWriter
-
-	gitDir string
+	fs         filesystem.Fs
+	fileWriter *filesystem.AtomicFileWriter
+	gitDir     string
 }
 
-func NewRefs(gitDir string, fileWriter *AtomicFileWriter) (*Refs, error) {
+func NewRefs(fs filesystem.Fs, gitDir string, fileWriter *filesystem.AtomicFileWriter) (*Refs, error) {
 	if gitDir == "" {
 		return nil, errors.New("gitDir is empty")
 	}
 
-	return &Refs{gitDir: gitDir, fileWriter: fileWriter}, nil
+	if fs == nil {
+		return nil, errors.New("fs is required")
+	}
+
+	return &Refs{
+		fs:         fs,
+		gitDir:     gitDir,
+		fileWriter: fileWriter,
+	}, nil
 }
 
+//nolint:wrapcheck
 func (r *Refs) UpdateHead(commitID string) error {
 	return r.fileWriter.Update(r.headPath(), commitID)
 }
 
 func (r *Refs) Current() (string, error) {
-	open, err := os.Open(r.headPath())
+	open, err := r.fs.Open(r.headPath())
 	if err != nil {
 		if os.IsNotExist(err) {
 			return "", nil
