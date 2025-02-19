@@ -20,13 +20,20 @@ func (a *AtomicFileWriter) Update(path string, content string) error {
 	if err != nil {
 		return fmt.Errorf("create lock file %q: %w", lockPath, err)
 	}
-	defer f.Close()
 
-	if _, err := f.WriteString(content); err != nil {
+	defer func() {
+		defer f.Close()
+
+		if err != nil {
+			a.fs.Remove(lockPath)
+		}
+	}()
+
+	if _, err = f.WriteString(content); err != nil {
 		return fmt.Errorf("write to lock file %q: %w", lockPath, err)
 	}
 
-	if err := f.Sync(); err != nil {
+	if err = f.Sync(); err != nil {
 		return fmt.Errorf("sync lock file %q: %w", lockPath, err)
 	}
 

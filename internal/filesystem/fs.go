@@ -14,6 +14,7 @@ type Dir interface {
 type FileWriter interface {
 	WriteFile(name string, data []byte, perm os.FileMode) error
 	Rename(oldpath, newpath string) error
+	Remove(name string) error
 }
 
 type Fs interface {
