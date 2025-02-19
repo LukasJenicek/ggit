@@ -119,6 +119,11 @@ func (f *Fs) Rename(oldpath, newpath string) error {
 }
 
 func (f *Fs) Remove(name string) error {
+	_, ok := f.fsys[name]
+	if !ok {
+		return os.ErrNotExist
+	}
+
 	delete(f.fsys, name)
 	return nil
 }
