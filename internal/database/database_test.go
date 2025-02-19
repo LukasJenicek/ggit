@@ -1,7 +1,6 @@
 package database_test
 
 import (
-	"fmt"
 	"testing"
 	"testing/fstest"
 
@@ -46,5 +45,5 @@ func TestDatabase_StoreRootTree(t *testing.T) {
 
 	oid, err := d.StoreTree(root)
 	require.NoError(t, err)
-	fmt.Println(oid)
+	require.NotEmpty(t, oid, "object ID should not be empty")
 }
