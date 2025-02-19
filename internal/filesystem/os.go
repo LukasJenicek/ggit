@@ -51,3 +51,8 @@ func (*OsFS) WriteFile(name string, data []byte, perm os.FileMode) error {
 func (*OsFS) Rename(oldpath, newpath string) error {
 	return os.Rename(oldpath, newpath)
 }
+
+//nolint:wrapcheck
+func (*OsFS) Remove(name string) error {
+	return os.Remove(name)
+}

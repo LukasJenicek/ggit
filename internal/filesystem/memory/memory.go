@@ -117,3 +117,8 @@ func (f *Fs) Rename(oldpath, newpath string) error {
 
 	return nil
 }
+
+func (f *Fs) Remove(name string) error {
+	delete(f.fsys, name)
+	return nil
+}
