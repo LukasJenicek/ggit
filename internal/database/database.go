@@ -9,9 +9,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/LukasJenicek/ggit/internal/filesystem"
 )
 
 type Database struct {
+	fs          filesystem.Fs
 	gitRootDir  string
 	objectsPath string
 }
@@ -20,18 +23,15 @@ type Object interface {
 	Content() ([]byte, error)
 }
 
-func New(gitDir string) *Database {
+func New(fs filesystem.Fs, gitDir string) *Database {
 	return &Database{
+		fs:          fs,
 		gitRootDir:  gitDir,
 		objectsPath: gitDir + "/objects",
 	}
 }
 
-// StoreTree stores a tree and all its subtrees in the database.
-// It uses a bottom-up approach, storing child trees before their parents
-// to ensure all references are valid when storing the root tree.
-// findTrees gives us list of trees that needs to be created before I can create their parent.
-// I just process the slice in reverse order
+// I just process the slice in reverse order.
 func (d *Database) StoreTree(root *Tree) ([]byte, error) {
 	if root == nil {
 		return nil, errors.New("root tree must be provided")
@@ -89,20 +89,20 @@ func (d *Database) writeObject(oid string, content []byte) error {
 	realPath := fmt.Sprintf("%s/%s/%s", d.objectsPath, oid[:2], oid[2:])
 	dir := filepath.Dir(realPath)
 
+	// object already exist do not overwrite
+	if _, err := d.fs.Stat(realPath); err == nil {
+		return nil
+	}
+
 	// create directory in .git/objects folder
-	if _, err := os.Stat(dir); err != nil {
+	if _, err := d.fs.Stat(dir); err != nil {
 		if os.IsNotExist(err) {
-			if err := os.MkdirAll(dir, 0o755); err != nil {
-				return fmt.Errorf("could not create directory %s: %w", dir, err)
+			if err := d.fs.Mkdir(dir, 0o755); err != nil {
+				return fmt.Errorf("create objects directory %s: %w", dir, err)
 			}
 		} else {
 			return fmt.Errorf("check directory: %w", err)
 		}
-	}
-
-	// object already exist do not overwrite
-	if _, err := os.Stat(realPath); err == nil {
-		return nil
 	}
 
 	// zlib compression with best speed
@@ -124,11 +124,11 @@ func (d *Database) writeObject(oid string, content []byte) error {
 	// when os write content to file it does not have to be done at once
 	// first we create tmp object and then move it ( rename it )
 	tmpPath := fmt.Sprintf("%s/%s/tmp_%s", d.objectsPath, oid[:2], oid[2:])
-	if err := os.WriteFile(tmpPath, compressed.Bytes(), 0o644); err != nil {
-		return fmt.Errorf("store tmp object %s: %w", oid, err)
+	if err := d.fs.WriteFile(tmpPath, compressed.Bytes(), 0o644); err != nil {
+		return fmt.Errorf("store tmp object %s: %w", tmpPath, err)
 	}
 
-	if err = os.Rename(tmpPath, realPath); err != nil {
+	if err = d.fs.Rename(tmpPath, realPath); err != nil {
 		return fmt.Errorf("rename tmp object %s: %w", oid, err)
 	}
 

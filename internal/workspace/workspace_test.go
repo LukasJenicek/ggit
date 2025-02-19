@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/LukasJenicek/ggit/internal/filesystem"
 	"github.com/LukasJenicek/ggit/internal/helpers"
 	"github.com/LukasJenicek/ggit/internal/workspace"
 )
@@ -20,7 +21,7 @@ func TestWorkspace_ListFiles(t *testing.T) {
 
 	testDataFolder := filepath.Join(projectRootFolder, "testdata")
 
-	w := workspace.New(testDataFolder)
+	w := workspace.New(testDataFolder, filesystem.New())
 
 	files, err := w.ListFiles()
 	if err != nil {

@@ -5,15 +5,19 @@ import (
 	"io/fs"
 	"path/filepath"
 	"slices"
+
+	"github.com/LukasJenicek/ggit/internal/filesystem"
 )
 
 type Workspace struct {
 	Cwd string
+	fs  filesystem.Fs
 }
 
-func New(cwd string) *Workspace {
+func New(cwd string, fs filesystem.Fs) *Workspace {
 	return &Workspace{
 		Cwd: cwd,
+		fs:  fs,
 	}
 }
 
@@ -28,7 +32,7 @@ func (w Workspace) ListFiles() ([]*File, error) {
 
 	files := []*File{}
 
-	err := filepath.WalkDir(w.Cwd, func(path string, d fs.DirEntry, err error) error {
+	err := w.fs.WalkDir(w.Cwd, func(path string, d fs.DirEntry, err error) error {
 		if slices.Contains(ignore, d.Name()) {
 			return filepath.SkipDir
 		}

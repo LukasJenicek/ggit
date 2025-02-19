@@ -1,17 +1,20 @@
 package database_test
 
 import (
+	"fmt"
 	"testing"
+	"testing/fstest"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/LukasJenicek/ggit/internal/database"
+	"github.com/LukasJenicek/ggit/internal/filesystem/memory"
 )
 
 func TestDatabase_StoreRootTree(t *testing.T) {
 	t.Parallel()
 
-	d := database.New("/tmp/.git")
+	d := database.New(memory.New(fstest.MapFS{}), "tmp/.git")
 
 	root := database.NewTree(nil, "")
 
@@ -23,6 +26,7 @@ func TestDatabase_StoreRootTree(t *testing.T) {
 	docsTree.AddEntry(entry)
 
 	root.AddEntry(docsTree)
+
 	entry, err = database.NewEntry("hello.txt", content, false)
 	require.NoError(t, err)
 	root.AddEntry(entry)
@@ -40,6 +44,7 @@ func TestDatabase_StoreRootTree(t *testing.T) {
 
 	root.AddEntry(libsTree)
 
-	_, err = d.StoreTree(root)
+	oid, err := d.StoreTree(root)
 	require.NoError(t, err)
+	fmt.Println(oid)
 }

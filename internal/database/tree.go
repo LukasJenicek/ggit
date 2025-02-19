@@ -1,6 +1,7 @@
 package database
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -20,7 +21,7 @@ type Entry struct {
 
 func NewEntry(name string, oid []byte, executable bool) (*Entry, error) {
 	if strings.TrimSpace(name) == "" {
-		return nil, fmt.Errorf("entry name cannot be empty")
+		return nil, errors.New("entry name cannot be empty")
 	}
 
 	if len(oid) != 20 {

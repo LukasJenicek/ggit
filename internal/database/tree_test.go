@@ -19,18 +19,22 @@ func TestBuildTree(t *testing.T) {
 
 	entry, err := database.NewEntry("hello.txt", content, false)
 	require.NoError(t, err)
+
 	entries = append(entries, entry)
 
 	entry, err = database.NewEntry("libs/hello.txt", content, false)
 	require.NoError(t, err)
+
 	entries = append(entries, entry)
 
 	entry, err = database.NewEntry("libs/internal/internal.txt", content, false)
 	require.NoError(t, err)
+
 	entries = append(entries, entry)
 
 	entry, err = database.NewEntry("world.txt", content, false)
 	require.NoError(t, err)
+
 	entries = append(entries, entry)
 
 	want := database.NewTree(nil, "")
@@ -49,6 +53,7 @@ func TestBuildTree(t *testing.T) {
 	libsInternalTree.AddEntry(entry)
 	libsTree.AddEntry(libsInternalTree)
 	want.AddEntry(libsTree)
+
 	entry, err = database.NewEntry("world.txt", content, false)
 	require.NoError(t, err)
 	want.AddEntry(entry)
