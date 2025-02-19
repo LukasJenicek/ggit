@@ -26,6 +26,10 @@ func NewRefs(fs filesystem.Fs, gitDir string, fileWriter *filesystem.AtomicFileW
 		return nil, errors.New("fs is required")
 	}
 
+	if fileWriter == nil {
+		return nil, errors.New("fileWriter is required")
+	}
+
 	return &Refs{
 		fs:         fs,
 		gitDir:     gitDir,

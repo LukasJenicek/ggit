@@ -46,8 +46,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("commit: %v", err)
 		}
-
-		fmt.Println("commit successfully", cID, "all")
+		fmt.Printf("[%s] Successfully committed changes\n", cID)
 	default:
 		log.Fatalf("unknown command: %q", cmd)
 	}
