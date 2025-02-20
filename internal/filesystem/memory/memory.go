@@ -3,6 +3,7 @@ package memory
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"strings"
@@ -34,6 +35,14 @@ func (m *MockFile) Sync() error {
 	}
 
 	return nil
+}
+
+func (m *MockFile) Write(b []byte) (int, error) {
+	if m.isClosed {
+		return 0, errors.New("write to closed file")
+	}
+
+	return m.content.Write(b)
 }
 
 func (m *MockFile) Close() error {
@@ -126,4 +135,16 @@ func (f *Fs) Remove(name string) error {
 
 	delete(f.fsys, name)
 	return nil
+}
+
+func (f *Fs) Create(name string) (io.WriteCloser, error) {
+	_, ok := f.fsys[name]
+	if !ok {
+		f.fsys[name] = &fstest.MapFile{Data: []byte{}, Mode: fs.ModePerm}
+	}
+
+	return &MockFile{
+		content:  strings.Builder{},
+		isClosed: false,
+	}, nil
 }

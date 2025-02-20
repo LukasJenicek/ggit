@@ -12,6 +12,7 @@ type Dir interface {
 }
 
 type FileWriter interface {
+	Create(name string) (io.WriteCloser, error)
 	WriteFile(name string, data []byte, perm os.FileMode) error
 	Rename(oldpath, newpath string) error
 	Remove(name string) error

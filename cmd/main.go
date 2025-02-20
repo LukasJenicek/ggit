@@ -47,6 +47,8 @@ func main() {
 			log.Fatalf("commit: %v", err)
 		}
 		fmt.Printf("[%s] Successfully committed changes\n", cID)
+	case "add":
+
 	default:
 		log.Fatalf("unknown command: %q", cmd)
 	}

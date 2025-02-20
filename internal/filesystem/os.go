@@ -1,6 +1,7 @@
 package filesystem
 
 import (
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -55,4 +56,9 @@ func (*OsFS) Rename(oldpath, newpath string) error {
 //nolint:wrapcheck
 func (*OsFS) Remove(name string) error {
 	return os.Remove(name)
+}
+
+//nolint:wrapcheck
+func (*OsFS) Create(name string) (io.WriteCloser, error) {
+	return os.Create(name)
 }
