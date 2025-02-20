@@ -13,7 +13,7 @@ func NewAtomicFileWriter(fs Fs) *AtomicFileWriter {
 	return &AtomicFileWriter{fs: fs}
 }
 
-func (a *AtomicFileWriter) Update(path string, content string) error {
+func (a *AtomicFileWriter) Update(path string, content []byte) error {
 	lockPath := path + ".lock"
 
 	f, err := a.fs.OpenFile(lockPath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0o644)
@@ -25,11 +25,11 @@ func (a *AtomicFileWriter) Update(path string, content string) error {
 		defer f.Close()
 
 		if err != nil {
-			a.fs.Remove(lockPath)
+			err = a.fs.Remove(lockPath)
 		}
 	}()
 
-	if _, err = f.WriteString(content); err != nil {
+	if _, err = f.Write(content); err != nil {
 		return fmt.Errorf("write to lock file %q: %w", lockPath, err)
 	}
 
