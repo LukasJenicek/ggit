@@ -1,7 +1,6 @@
 package database
 
 import (
-	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -12,39 +11,6 @@ const (
 	executableMode = "100755"
 	directoryMode  = "40000"
 )
-
-type Entry struct {
-	Name       string
-	oid        []byte
-	executable bool
-}
-
-func NewEntry(name string, oid []byte, executable bool) (*Entry, error) {
-	if strings.TrimSpace(name) == "" {
-		return nil, errors.New("entry name cannot be empty")
-	}
-
-	if len(oid) != 20 {
-		return nil, fmt.Errorf("invalid oid length: expected 20 bytes, got %d", len(oid))
-	}
-
-	return &Entry{
-		Name:       name,
-		oid:        oid,
-		executable: executable,
-	}, nil
-}
-
-func (e *Entry) Content() ([]byte, error) {
-	mode := regularMode
-	if e.executable {
-		mode = executableMode
-	}
-
-	path := strings.Split(e.Name, "/")
-
-	return []byte(fmt.Sprintf("%s %s\x00%s", mode, path[len(path)-1], e.oid)), nil
-}
 
 type Tree struct {
 	// could be either Entry or Tree
@@ -72,7 +38,7 @@ func (t *Tree) Content() ([]byte, error) {
 		tree, ok := entry.(*Tree)
 		if ok {
 			if string(tree.oid) == "" {
-				return nil, fmt.Errorf("tree %s has no oid", t.name)
+				return nil, fmt.Errorf("tree %s has no OID", t.name)
 			}
 
 			content += fmt.Sprintf("%s %s\x00%s", directoryMode, tree.name, tree.oid)

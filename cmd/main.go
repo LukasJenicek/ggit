@@ -46,7 +46,13 @@ func main() {
 		if err != nil {
 			log.Fatalf("commit: %v", err)
 		}
+
 		fmt.Printf("[%s] Successfully committed changes\n", cID)
+	case "add":
+		err := repo.Add("world.txt")
+		if err != nil {
+			log.Fatalf("add: %v", err)
+		}
 	default:
 		log.Fatalf("unknown command: %q", cmd)
 	}

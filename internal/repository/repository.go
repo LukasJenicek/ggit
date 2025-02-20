@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
-	"strings"
 	"time"
 
 	"github.com/LukasJenicek/ggit/internal/clock"
 	"github.com/LukasJenicek/ggit/internal/config"
 	"github.com/LukasJenicek/ggit/internal/database"
+	"github.com/LukasJenicek/ggit/internal/database/index"
 	"github.com/LukasJenicek/ggit/internal/filesystem"
 	"github.com/LukasJenicek/ggit/internal/workspace"
 )
@@ -19,12 +18,13 @@ import (
 // Repository
 // Cwd = Is relative folder where you run ggit commands.
 type Repository struct {
-	FS        filesystem.Fs
-	Workspace *workspace.Workspace
-	Database  *database.Database
-	Refs      *database.Refs
 	Config    *config.Config
 	Clock     clock.Clock
+	Database  *database.Database
+	FS        filesystem.Fs
+	Indexer   *index.Indexer
+	Workspace *workspace.Workspace
+	Refs      *database.Refs
 
 	Cwd         string
 	RootDir     string
@@ -35,9 +35,9 @@ type Repository struct {
 func New(fs filesystem.Fs, clock clock.Clock, cwd string) (*Repository, error) {
 	var initialized bool
 
-	gitDir := filepath.Join(cwd, ".git")
+	gitPath := filepath.Join(cwd, ".git")
 
-	_, err := fs.Stat(gitDir)
+	_, err := fs.Stat(gitPath)
 	if err == nil {
 		initialized = true
 	}
@@ -55,27 +55,43 @@ func New(fs filesystem.Fs, clock clock.Clock, cwd string) (*Repository, error) {
 		return nil, fmt.Errorf("load git config: %w", err)
 	}
 
-	refs, err := database.NewRefs(fs, gitDir, filesystem.NewAtomicFileWriter(fs))
+	writer := filesystem.NewAtomicFileWriter(fs)
+
+	refs, err := database.NewRefs(fs, gitPath, writer)
 	if err != nil {
 		return nil, fmt.Errorf("init refs: %w", err)
 	}
 
+	db := database.New(fs, gitPath)
+
 	return &Repository{
 		FS:          fs,
 		Workspace:   workspace.New(cwd, fs),
-		Database:    database.New(fs, gitDir),
+		Database:    db,
+		Indexer:     index.NewIndexer(fs, writer, db, gitPath, cwd),
 		Clock:       clock,
 		Refs:        refs,
 		Config:      cfg,
 		RootDir:     cwd,
 		Cwd:         cwd,
-		GitPath:     gitDir,
+		GitPath:     gitPath,
 		Initialized: initialized,
 	}, nil
 }
 
 func (r *Repository) Init() error {
-	dirs := []string{".git", ".git/objects", ".git/refs"}
+	dirs := []string{
+		".git",
+		".git/branches",
+		".git/hooks",
+		".git/info",
+		".git/objects",
+		".git/objects/info",
+		".git/objects/pack",
+		".git/refs",
+		".git/refs/heads",
+		".git/refs/tags",
+	}
 
 	for _, path := range dirs {
 		err := r.FS.Mkdir(filepath.Join(r.RootDir, path), os.ModePerm)
@@ -84,11 +100,35 @@ func (r *Repository) Init() error {
 		}
 	}
 
+	if err := r.Refs.UpdateHead("ref: refs/heads/master"); err != nil {
+		return fmt.Errorf("update refs: %w", err)
+	}
+
+	return nil
+}
+
+func (r *Repository) Add(path string) error {
+	files := []*workspace.File{
+		{
+			Path: "world.txt",
+			Dir:  false,
+		},
+	}
+
+	if err := r.Indexer.Add(files); err != nil {
+		return fmt.Errorf("add files to index: %w", err)
+	}
+
 	return nil
 }
 
 func (r *Repository) Commit() (string, error) {
-	entries, err := r.saveBlobs()
+	files, err := r.Workspace.ListFiles()
+	if err != nil {
+		return "", fmt.Errorf("list files: %w", err)
+	}
+
+	entries, err := r.Database.SaveBlobs(files)
 	if err != nil {
 		return "", fmt.Errorf("save blobs: %w", err)
 	}
@@ -130,59 +170,4 @@ func (r *Repository) Commit() (string, error) {
 	}
 
 	return cID, nil
-}
-
-func (r *Repository) saveBlobs() ([]*database.Entry, error) {
-	files, err := r.Workspace.ListFiles()
-	if err != nil {
-		return nil, fmt.Errorf("list files: %w", err)
-	}
-
-	entries := make([]*database.Entry, 0, len(files))
-
-	for _, file := range files {
-		if file.Dir {
-			continue
-		}
-
-		entry, err := r.saveBlob(file)
-		if err != nil {
-			return nil, fmt.Errorf("save blob: %w", err)
-		}
-
-		entries = append(entries, entry)
-	}
-
-	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].Name < entries[j].Name
-	})
-
-	return entries, nil
-}
-
-func (r *Repository) saveBlob(file *workspace.File) (*database.Entry, error) {
-	content, err := r.FS.ReadFile(file.Path)
-	if err != nil {
-		return nil, fmt.Errorf("read file content: %w", err)
-	}
-
-	// relative to root folder where the git was initialized
-	relativeFilePath := strings.Replace(file.Path, r.RootDir+"/", "", 1)
-
-	f, err := r.FS.Stat(file.Path)
-	if err != nil {
-		return nil, fmt.Errorf("stat file %s: %w", file.Path, err)
-	}
-
-	executable := false
-	if f.Mode().Perm()&0o100 != 0 {
-		executable = true
-	}
-
-	oid, err := r.Database.Store(database.NewBlob(content))
-	if err != nil {
-		return nil, fmt.Errorf("store blob %s: %w", file.Path, err)
-	}
-
-	return database.NewEntry(relativeFilePath, oid, executable)
 }

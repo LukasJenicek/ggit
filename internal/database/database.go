@@ -3,14 +3,16 @@ package database
 import (
 	"bytes"
 	"compress/zlib"
-	"crypto/sha1"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/LukasJenicek/ggit/internal/filesystem"
+	"github.com/LukasJenicek/ggit/internal/hasher"
+	"github.com/LukasJenicek/ggit/internal/workspace"
 )
 
 type Database struct {
@@ -31,6 +33,7 @@ func New(fs filesystem.Fs, gitDir string) *Database {
 	}
 }
 
+// StoreTree
 // I just process the slice in reverse order.
 func (d *Database) StoreTree(root *Tree) ([]byte, error) {
 	if root == nil {
@@ -66,15 +69,13 @@ func (d *Database) Store(o Object) ([]byte, error) {
 		return nil, fmt.Errorf("get object content: %w", err)
 	}
 
-	// TODO: move to SHA256, check backward compatibility with git implementation
-	// See: https://shattered.io/
-	hasher := sha1.New()
-	hasher.Write(c)
-
-	oid := hasher.Sum(nil)
+	oid, err := hasher.SHA1HashContent(c)
+	if err != nil {
+		return nil, fmt.Errorf("generate oid: %w", err)
+	}
 
 	if len(oid) != 20 {
-		return nil, fmt.Errorf("sha1 hash must have 20 bytes, invalid object id: %s", oid)
+		return nil, fmt.Errorf("invalid object id: %s, sha1 hash must have 20 bytes", oid)
 	}
 
 	err = d.writeObject(hex.EncodeToString(oid), c)
@@ -83,6 +84,53 @@ func (d *Database) Store(o Object) ([]byte, error) {
 	}
 
 	return oid, nil
+}
+
+func (d *Database) SaveBlobs(files []*workspace.File) ([]*Entry, error) {
+	entries := make([]*Entry, 0, len(files))
+
+	for _, file := range files {
+		if file.Dir {
+			continue
+		}
+
+		entry, err := d.saveBlob(file)
+		if err != nil {
+			return nil, fmt.Errorf("save blob: %w", err)
+		}
+
+		entries = append(entries, entry)
+	}
+
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].Name < entries[j].Name
+	})
+
+	return entries, nil
+}
+
+func (d *Database) saveBlob(file *workspace.File) (*Entry, error) {
+	content, err := d.fs.ReadFile(file.Path)
+	if err != nil {
+		return nil, fmt.Errorf("read file content: %w", err)
+	}
+
+	oid, err := d.Store(NewBlob(content))
+	if err != nil {
+		return nil, fmt.Errorf("store blob %s: %w", file.Path, err)
+	}
+
+	f, err := d.fs.Stat(file.Path)
+	if err != nil {
+		return nil, fmt.Errorf("stat file %s: %w", file.Path, err)
+	}
+
+	executable := false
+	if f.Mode().Perm()&0o100 != 0 {
+		executable = true
+	}
+
+	return NewEntry(f.Name(), file.Path, oid, executable)
 }
 
 func (d *Database) writeObject(oid string, content []byte) error {

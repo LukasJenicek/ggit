@@ -13,6 +13,7 @@ import (
 	"github.com/LukasJenicek/ggit/internal/clock"
 	"github.com/LukasJenicek/ggit/internal/config"
 	"github.com/LukasJenicek/ggit/internal/database"
+	"github.com/LukasJenicek/ggit/internal/database/index"
 	"github.com/LukasJenicek/ggit/internal/filesystem"
 	"github.com/LukasJenicek/ggit/internal/filesystem/memory"
 	"github.com/LukasJenicek/ggit/internal/repository"
@@ -43,10 +44,14 @@ func TestNew(t *testing.T) {
 		require.NoError(t, err)
 
 		require.NotNil(t, repo)
+
+		d := database.New(fs, gitPath)
+
 		require.EqualValues(t, &repository.Repository{
 			FS:        fs,
 			Workspace: workspace.New(cwd, fs),
-			Database:  database.New(fs, gitPath),
+			Database:  d,
+			Indexer:   index.NewIndexer(fs, filesystem.NewAtomicFileWriter(fs), d, gitPath, cwd),
 			Clock:     fakeClock,
 			Refs:      refs,
 			Config: &config.Config{
@@ -73,13 +78,18 @@ func TestNew(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, repo)
 
-		refs, err := database.NewRefs(fs, gitPath, filesystem.NewAtomicFileWriter(fs))
+		writer := filesystem.NewAtomicFileWriter(fs)
+
+		refs, err := database.NewRefs(fs, gitPath, writer)
 		require.NoError(t, err)
+
+		db := database.New(fs, gitPath)
 
 		require.EqualValues(t, &repository.Repository{
 			FS:        fs,
 			Workspace: workspace.New(cwd, fs),
-			Database:  database.New(fs, gitPath),
+			Database:  db,
+			Indexer:   index.NewIndexer(fs, writer, db, gitPath, cwd),
 			Clock:     fakeClock,
 			Refs:      refs,
 			Config: &config.Config{
@@ -158,11 +168,11 @@ func TestRepository_Commit(t *testing.T) {
 
 	root := database.NewTree(nil, "")
 
-	entry, err := database.NewEntry("hello.txt", helloBlob, false)
+	entry, err := database.NewEntry("hello.txt", "tmp/test/hello.txt", helloBlob, false)
 	require.NoError(t, err)
 	root.AddEntry(entry)
 
-	entry, err = database.NewEntry("world.txt", worldBlob, false)
+	entry, err = database.NewEntry("world.txt", "tmp/test/world.txt", worldBlob, false)
 	require.NoError(t, err)
 	root.AddEntry(entry)
 
@@ -179,6 +189,8 @@ func TestRepository_Commit(t *testing.T) {
 }
 
 func hash(t *testing.T, object database.Object) []byte {
+	t.Helper()
+
 	content, err := object.Content()
 	require.NoError(t, err)
 

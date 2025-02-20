@@ -3,6 +3,7 @@ package memory
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"strings"
@@ -20,12 +21,13 @@ type MockFile struct {
 	isClosed bool
 }
 
-func (m *MockFile) WriteString(s string) (int, error) {
+//nolint:wrapcheck
+func (m *MockFile) Write(b []byte) (int, error) {
 	if m.isClosed {
 		return 0, errors.New("write to closed file")
 	}
 
-	return m.content.WriteString(s)
+	return m.content.Write(b)
 }
 
 func (m *MockFile) Sync() error {
@@ -49,14 +51,17 @@ func New(fsys fstest.MapFS) *Fs {
 	}
 }
 
+//nolint:wrapcheck
 func (f *Fs) Stat(name string) (os.FileInfo, error) {
 	return f.fsys.Stat(name)
 }
 
+//nolint:wrapcheck
 func (f *Fs) Open(name string) (fs.File, error) {
 	return f.fsys.Open(name)
 }
 
+//nolint:wrapcheck
 func (f *Fs) OpenFile(name string, flag int, perm os.FileMode) (filesystem.File, error) {
 	_, err := f.fsys.Open(name)
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
@@ -73,10 +78,12 @@ func (f *Fs) OpenFile(name string, flag int, perm os.FileMode) (filesystem.File,
 	}, nil
 }
 
+//nolint:wrapcheck
 func (f *Fs) WalkDir(path string, walkDir fs.WalkDirFunc) error {
 	return fs.WalkDir(f.fsys, path, walkDir)
 }
 
+//nolint:wrapcheck
 func (f *Fs) ReadFile(name string) ([]byte, error) {
 	return f.fsys.ReadFile(name)
 }
@@ -125,5 +132,18 @@ func (f *Fs) Remove(name string) error {
 	}
 
 	delete(f.fsys, name)
+
 	return nil
+}
+
+func (f *Fs) Create(name string) (io.WriteCloser, error) {
+	_, ok := f.fsys[name]
+	if !ok {
+		f.fsys[name] = &fstest.MapFile{Data: []byte{}, Mode: fs.ModePerm}
+	}
+
+	return &MockFile{
+		content:  strings.Builder{},
+		isClosed: false,
+	}, nil
 }

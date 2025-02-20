@@ -14,10 +14,15 @@ import (
 type Refs struct {
 	fs         filesystem.Fs
 	fileWriter *filesystem.AtomicFileWriter
-	gitDir     string
+
+	headFilePath string
 }
 
-func NewRefs(fs filesystem.Fs, gitDir string, fileWriter *filesystem.AtomicFileWriter) (*Refs, error) {
+func NewRefs(
+	fs filesystem.Fs,
+	gitDir string,
+	fileWriter *filesystem.AtomicFileWriter,
+) (*Refs, error) {
 	if gitDir == "" {
 		return nil, errors.New("gitDir is empty")
 	}
@@ -31,35 +36,34 @@ func NewRefs(fs filesystem.Fs, gitDir string, fileWriter *filesystem.AtomicFileW
 	}
 
 	return &Refs{
-		fs:         fs,
-		gitDir:     gitDir,
-		fileWriter: fileWriter,
+		fs:           fs,
+		headFilePath: filepath.Join(gitDir, "HEAD"),
+		fileWriter:   fileWriter,
 	}, nil
 }
 
-//nolint:wrapcheck
 func (r *Refs) UpdateHead(commitID string) error {
-	return r.fileWriter.Update(r.headPath(), commitID)
+	if err := r.fileWriter.Update(r.headFilePath, []byte(commitID)); err != nil {
+		return fmt.Errorf("update : %w", err)
+	}
+
+	return nil
 }
 
 func (r *Refs) Current() (string, error) {
-	open, err := r.fs.Open(r.headPath())
+	open, err := r.fs.Open(r.headFilePath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return "", nil
 		} else {
-			return "", fmt.Errorf("could not open HEAD file: %w", err)
+			return "", fmt.Errorf("open HEAD file: %w", err)
 		}
 	}
 
 	currentCID, err := io.ReadAll(open)
 	if err != nil {
-		return "", fmt.Errorf("could not read from HEAD file: %w", err)
+		return "", fmt.Errorf("read from HEAD file: %w", err)
 	}
 
 	return strings.TrimSpace(string(currentCID)), nil
-}
-
-func (r *Refs) headPath() string {
-	return filepath.Join(r.gitDir, "HEAD")
 }
