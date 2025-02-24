@@ -1,12 +1,15 @@
 package workspace
 
 import (
+	"errors"
 	"fmt"
-	"github.com/LukasJenicek/ggit/internal/filesystem"
 	"io/fs"
 	"path/filepath"
 	"slices"
+	"sort"
 	"strings"
+
+	"github.com/LukasJenicek/ggit/internal/filesystem"
 )
 
 type Workspace struct {
@@ -25,11 +28,43 @@ type File struct {
 	Path string
 }
 
-func (w Workspace) ListFiles(matchPath string) ([]*File, error) {
+type Set map[string]struct{}
+
+func NewSet(values []string) Set {
+	s := Set{}
+	for _, value := range values {
+		s.Add(value)
+	}
+
+	return s
+}
+
+func (s Set) Add(value string) {
+	s[value] = struct{}{}
+}
+
+func (s Set) Size() int {
+	return len(s)
+}
+
+func (s Set) SortedValues() []string {
+	keys := make([]string, 0, len(s))
+
+	for value := range s {
+		keys = append(keys, value)
+	}
+
+	sort.Strings(keys)
+
+	return keys
+}
+
+func (w Workspace) ListFiles(matchPath string) (Set, error) {
 	// TODO: load more ignored files from config
 	ignore := []string{".", "..", ".git"}
 
-	files := []*File{}
+	files := []string{}
+
 	err := w.fs.WalkDir(w.rootDir, func(path string, d fs.DirEntry, err error) error {
 		if slices.Contains(ignore, d.Name()) {
 			return filepath.SkipDir
@@ -47,11 +82,11 @@ func (w Workspace) ListFiles(matchPath string) ([]*File, error) {
 		// prevent traversal directory attack
 		cleanPath := filepath.Join(w.rootDir, filepath.Clean(strings.Replace(path, w.rootDir, "", 1)))
 		if !strings.HasPrefix(cleanPath, w.rootDir) {
-			return fmt.Errorf("invalid file path, outside of the root directory")
+			return errors.New("invalid file path, outside of the root directory")
 		}
 
 		if matchPath == "." {
-			files = append(files, &File{Path: cleanPath})
+			files = append(files, cleanPath)
 		}
 
 		match, err := filepath.Match(matchPath, d.Name())
@@ -60,7 +95,7 @@ func (w Workspace) ListFiles(matchPath string) ([]*File, error) {
 		}
 
 		if match {
-			files = append(files, &File{Path: cleanPath})
+			files = append(files, cleanPath)
 		}
 
 		return nil
@@ -69,5 +104,5 @@ func (w Workspace) ListFiles(matchPath string) ([]*File, error) {
 		return nil, fmt.Errorf("walk recursively dir %q: %w", w.rootDir, err)
 	}
 
-	return files, nil
+	return NewSet(files), nil
 }

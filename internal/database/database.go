@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 
 	"github.com/LukasJenicek/ggit/internal/filesystem"
 	"github.com/LukasJenicek/ggit/internal/hasher"
@@ -86,10 +85,10 @@ func (d *Database) Store(o Object) ([]byte, error) {
 	return oid, nil
 }
 
-func (d *Database) SaveBlobs(files []*workspace.File) ([]*Entry, error) {
+func (d *Database) SaveBlobs(files workspace.Set) ([]*Entry, error) {
 	entries := make([]*Entry, 0, len(files))
 
-	for _, file := range files {
+	for _, file := range files.SortedValues() {
 		entry, err := d.saveBlob(file)
 		if err != nil {
 			return nil, fmt.Errorf("save blob: %w", err)
@@ -98,27 +97,23 @@ func (d *Database) SaveBlobs(files []*workspace.File) ([]*Entry, error) {
 		entries = append(entries, entry)
 	}
 
-	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].Name < entries[j].Name
-	})
-
 	return entries, nil
 }
 
-func (d *Database) saveBlob(file *workspace.File) (*Entry, error) {
-	content, err := d.fs.ReadFile(file.Path)
+func (d *Database) saveBlob(filePath string) (*Entry, error) {
+	content, err := d.fs.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("read file content: %w", err)
 	}
 
 	oid, err := d.Store(NewBlob(content))
 	if err != nil {
-		return nil, fmt.Errorf("store blob %s: %w", file.Path, err)
+		return nil, fmt.Errorf("store blob %s: %w", filePath, err)
 	}
 
-	f, err := d.fs.Stat(file.Path)
+	f, err := d.fs.Stat(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("stat file %s: %w", file.Path, err)
+		return nil, fmt.Errorf("stat file %s: %w", filePath, err)
 	}
 
 	executable := false
@@ -126,7 +121,7 @@ func (d *Database) saveBlob(file *workspace.File) (*Entry, error) {
 		executable = true
 	}
 
-	return NewEntry(f.Name(), file.Path, oid, executable)
+	return NewEntry(f.Name(), filePath, oid, executable)
 }
 
 func (d *Database) writeObject(oid string, content []byte) error {
