@@ -138,9 +138,11 @@ func (f *Fs) Remove(name string) error {
 
 func (f *Fs) Create(name string) (io.WriteCloser, error) {
 	_, ok := f.fsys[name]
-	if !ok {
-		f.fsys[name] = &fstest.MapFile{Data: []byte{}, Mode: fs.ModePerm}
+	if ok {
+		return nil, os.ErrExist
 	}
+
+	f.fsys[name] = &fstest.MapFile{Data: []byte{}, Mode: fs.ModePerm}
 
 	return &MockFile{
 		content:  strings.Builder{},
