@@ -90,10 +90,6 @@ func (d *Database) SaveBlobs(files []*workspace.File) ([]*Entry, error) {
 	entries := make([]*Entry, 0, len(files))
 
 	for _, file := range files {
-		if file.Dir {
-			continue
-		}
-
 		entry, err := d.saveBlob(file)
 		if err != nil {
 			return nil, fmt.Errorf("save blob: %w", err)

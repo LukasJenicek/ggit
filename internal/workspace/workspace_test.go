@@ -30,24 +30,13 @@ func TestWorkspace_ListFiles(t *testing.T) {
 
 	expectedFiles := []*workspace.File{
 		{
-			Path: "/home/lj/Projects/LukasJenicek/ggit/testdata/a",
-			Dir:  true,
-		},
-		{
 			Path: "/home/lj/Projects/LukasJenicek/ggit/testdata/a/a.txt",
-			Dir:  false,
 		},
 		{
 			Path: "/home/lj/Projects/LukasJenicek/ggit/testdata/a.txt",
-			Dir:  false,
-		},
-		{
-			Path: "/home/lj/Projects/LukasJenicek/ggit/testdata/b",
-			Dir:  true,
 		},
 		{
 			Path: "/home/lj/Projects/LukasJenicek/ggit/testdata/b/b.txt",
-			Dir:  false,
 		},
 	}
 

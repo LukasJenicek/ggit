@@ -2,28 +2,27 @@ package workspace
 
 import (
 	"fmt"
+	"github.com/LukasJenicek/ggit/internal/filesystem"
 	"io/fs"
 	"path/filepath"
 	"slices"
-
-	"github.com/LukasJenicek/ggit/internal/filesystem"
+	"strings"
 )
 
 type Workspace struct {
-	Cwd string
-	fs  filesystem.Fs
+	rootDir string
+	fs      filesystem.Fs
 }
 
-func New(cwd string, fs filesystem.Fs) *Workspace {
+func New(rootDir string, fs filesystem.Fs) *Workspace {
 	return &Workspace{
-		Cwd: cwd,
-		fs:  fs,
+		rootDir: rootDir,
+		fs:      fs,
 	}
 }
 
 type File struct {
 	Path string
-	Dir  bool
 }
 
 func (w Workspace) ListFiles(matchPath string) ([]*File, error) {
@@ -31,38 +30,45 @@ func (w Workspace) ListFiles(matchPath string) ([]*File, error) {
 	ignore := []string{".", "..", ".git"}
 
 	files := []*File{}
-
-	err := w.fs.WalkDir(w.Cwd, func(path string, d fs.DirEntry, err error) error {
+	err := w.fs.WalkDir(w.rootDir, func(path string, d fs.DirEntry, err error) error {
 		if slices.Contains(ignore, d.Name()) {
 			return filepath.SkipDir
 		}
 
 		// do not include root folder name
-		if filepath.Base(w.Cwd) == d.Name() {
+		if filepath.Base(w.rootDir) == d.Name() {
 			return nil
 		}
 
-		if !d.IsDir() {
-			if matchPath == "." {
-				files = append(files, &File{Path: path, Dir: true})
-			}
-
-			match, err := filepath.Match(matchPath, d.Name())
-			if err != nil {
-				return fmt.Errorf("matching path %q: %w", matchPath, err)
-			}
-
-			if match {
-				files = append(files, &File{Path: path, Dir: false})
-			}
-		} else {
-			files = append(files, &File{Path: path, Dir: true})
+		if d.IsDir() {
+			return nil
 		}
+
+		// prevent traversal directory attack
+		cleanPath := filepath.Join(w.rootDir, filepath.Clean(strings.Replace(path, w.rootDir, "", 1)))
+		if !strings.HasPrefix(cleanPath, w.rootDir) {
+			return fmt.Errorf("invalid file path, outside of the root directory")
+		}
+
+		if matchPath == "." {
+			files = append(files, &File{Path: cleanPath})
+		}
+
+		match, err := filepath.Match(matchPath, cleanPath)
+		if err != nil {
+			return fmt.Errorf("matching path %q with pattern %q: %w", cleanPath, matchPath, err)
+		}
+
+		if match {
+			files = append(files, &File{Path: cleanPath})
+		}
+
+		fmt.Println(path)
 
 		return nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("walk recursively dir %q: %w", w.Cwd, err)
+		return nil, fmt.Errorf("walk recursively dir %q: %w", w.rootDir, err)
 	}
 
 	return files, nil
