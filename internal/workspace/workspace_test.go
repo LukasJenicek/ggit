@@ -23,7 +23,7 @@ func TestWorkspace_ListFiles(t *testing.T) {
 
 	w := workspace.New(testDataFolder, filesystem.New())
 
-	files, err := w.ListFiles()
+	files, err := w.ListFiles(".")
 	if err != nil {
 		t.Errorf("list files: %s", err)
 	}
