@@ -50,8 +50,9 @@ func main() {
 
 		fmt.Printf("[%s] Successfully committed changes\n", cID)
 	case "add":
-		if len(os.Args) != 3 {
+		if len(os.Args) < 3 {
 			fmt.Println("Nothing specified, nothing added.")
+			fmt.Println("usage: ggit add <file1> [file2 ...]")
 			os.Exit(0)
 		}
 
