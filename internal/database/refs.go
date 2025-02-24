@@ -43,6 +43,14 @@ func NewRefs(
 }
 
 func (r *Refs) UpdateHead(commitID string) error {
+	if commitID == "" {
+		return errors.New("commit id is empty")
+	}
+
+	if len(commitID) != 40 {
+		return fmt.Errorf("invalid commit ID length: %d", len(commitID))
+	}
+
 	if err := r.fileWriter.Update(r.headFilePath, []byte(commitID)); err != nil {
 		return fmt.Errorf("update : %w", err)
 	}
