@@ -42,3 +42,35 @@ func TestWorkspace_ListFiles(t *testing.T) {
 
 	assert.EqualValues(t, expectedFiles, files)
 }
+
+func TestWorkspace_ListSpecificFiles(t *testing.T) {
+	t.Parallel()
+
+	projectRootFolder, err := helpers.GetProjectRootFolder()
+	if err != nil {
+		t.Error(err)
+	}
+
+	testDataFolder := filepath.Join(projectRootFolder, "testdata")
+
+	w := workspace.New(testDataFolder, filesystem.New())
+
+	files, err := w.ListFiles("*.txt")
+	if err != nil {
+		t.Errorf("list files: %s", err)
+	}
+
+	expectedFiles := []*workspace.File{
+		{
+			Path: "/home/lj/Projects/LukasJenicek/ggit/testdata/a/a.txt",
+		},
+		{
+			Path: "/home/lj/Projects/LukasJenicek/ggit/testdata/a.txt",
+		},
+		{
+			Path: "/home/lj/Projects/LukasJenicek/ggit/testdata/b/b.txt",
+		},
+	}
+
+	assert.EqualValues(t, expectedFiles, files)
+}
