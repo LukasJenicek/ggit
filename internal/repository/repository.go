@@ -108,11 +108,9 @@ func (r *Repository) Init() error {
 }
 
 func (r *Repository) Add(path string) error {
-	files := []*workspace.File{
-		{
-			Path: "world.txt",
-			Dir:  false,
-		},
+	files, err := r.Workspace.ListFiles(path)
+	if err != nil {
+		return fmt.Errorf("list files: %w", err)
 	}
 
 	if err := r.Indexer.Add(files); err != nil {
@@ -123,7 +121,7 @@ func (r *Repository) Add(path string) error {
 }
 
 func (r *Repository) Commit() (string, error) {
-	files, err := r.Workspace.ListFiles()
+	files, err := r.Workspace.ListFiles(".")
 	if err != nil {
 		return "", fmt.Errorf("list files: %w", err)
 	}

@@ -26,7 +26,7 @@ type File struct {
 	Dir  bool
 }
 
-func (w Workspace) ListFiles() ([]*File, error) {
+func (w Workspace) ListFiles(matchPath string) ([]*File, error) {
 	// TODO: load more ignored files from config
 	ignore := []string{".", "..", ".git"}
 
@@ -43,7 +43,18 @@ func (w Workspace) ListFiles() ([]*File, error) {
 		}
 
 		if !d.IsDir() {
-			files = append(files, &File{Path: path, Dir: false})
+			if matchPath == "." {
+				files = append(files, &File{Path: path, Dir: true})
+			}
+
+			match, err := filepath.Match(matchPath, d.Name())
+			if err != nil {
+				return fmt.Errorf("matching path %q: %w", matchPath, err)
+			}
+
+			if match {
+				files = append(files, &File{Path: path, Dir: false})
+			}
 		} else {
 			files = append(files, &File{Path: path, Dir: true})
 		}

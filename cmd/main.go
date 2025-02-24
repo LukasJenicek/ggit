@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/LukasJenicek/ggit/internal/clock"
 	"github.com/LukasJenicek/ggit/internal/filesystem"
@@ -11,7 +12,7 @@ import (
 )
 
 func main() {
-	if len(os.Args) != 2 {
+	if len(os.Args) < 2 {
 		log.Fatalf("usage: %s <cmd>\n", os.Args[0])
 	}
 
@@ -49,7 +50,18 @@ func main() {
 
 		fmt.Printf("[%s] Successfully committed changes\n", cID)
 	case "add":
-		err := repo.Add("world.txt")
+		if len(os.Args) != 3 {
+			fmt.Println("Nothing specified, nothing added.")
+			os.Exit(0)
+		}
+
+		path := strings.TrimSpace(os.Args[2])
+		if path == "" {
+			fmt.Println("Nothing specified, nothing added.")
+			os.Exit(0)
+		}
+
+		err := repo.Add(path)
 		if err != nil {
 			log.Fatalf("add: %v", err)
 		}
