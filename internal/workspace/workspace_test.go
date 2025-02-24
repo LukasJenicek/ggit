@@ -28,19 +28,15 @@ func TestWorkspace_ListFiles(t *testing.T) {
 		t.Errorf("list files: %s", err)
 	}
 
-	expectedFiles := []*workspace.File{
-		{
-			Path: filepath.Join(testDataFolder, "a", "a.txt"),
-		},
-		{
-			Path: filepath.Join(testDataFolder, "a.txt"),
-		},
-		{
-			Path: filepath.Join(testDataFolder, "b", "b.txt"),
-		},
-	}
-
-	assert.EqualValues(t, expectedFiles, files)
+	assert.EqualValues(
+		t,
+		files,
+		workspace.NewSet([]string{
+			filepath.Join(testDataFolder, "a", "a.txt"),
+			filepath.Join(testDataFolder, "a.txt"),
+			filepath.Join(testDataFolder, "b", "b.txt"),
+		}),
+	)
 }
 
 func TestWorkspace_ListSpecificFiles(t *testing.T) {
@@ -60,19 +56,15 @@ func TestWorkspace_ListSpecificFiles(t *testing.T) {
 		t.Errorf("list files: %s", err)
 	}
 
-	expectedFiles := []*workspace.File{
-		{
-			Path: filepath.Join(testDataFolder, "a", "a.txt"),
-		},
-		{
-			Path: filepath.Join(testDataFolder, "a.txt"),
-		},
-		{
-			Path: filepath.Join(testDataFolder, "b", "b.txt"),
-		},
-	}
-
-	assert.EqualValues(t, expectedFiles, files)
+	assert.EqualValues(
+		t,
+		files,
+		workspace.NewSet([]string{
+			filepath.Join(testDataFolder, "a", "a.txt"),
+			filepath.Join(testDataFolder, "a.txt"),
+			filepath.Join(testDataFolder, "b", "b.txt"),
+		}),
+	)
 }
 
 func TestWorkspace_ListSpecificFile(t *testing.T) {
@@ -92,14 +84,12 @@ func TestWorkspace_ListSpecificFile(t *testing.T) {
 		t.Errorf("list files: %s", err)
 	}
 
-	expectedFiles := []*workspace.File{
-		{
-			Path: filepath.Join(testDataFolder, "a", "a.txt"),
-		},
-		{
-			Path: filepath.Join(testDataFolder, "a.txt"),
-		},
-	}
-
-	assert.EqualValues(t, expectedFiles, files)
+	assert.EqualValues(
+		t,
+		files,
+		workspace.NewSet([]string{
+			filepath.Join(testDataFolder, "a", "a.txt"),
+			filepath.Join(testDataFolder, "a.txt"),
+		}),
+	)
 }

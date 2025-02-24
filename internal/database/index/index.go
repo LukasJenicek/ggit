@@ -44,7 +44,7 @@ func NewIndexer(
 	}
 }
 
-func (idx *Indexer) Add(files []*workspace.File) error {
+func (idx *Indexer) Add(files workspace.Set) error {
 	if err := idx.createIndexFile(); err != nil {
 		return fmt.Errorf("create index file: %w", err)
 	}
@@ -61,10 +61,10 @@ func (idx *Indexer) Add(files []*workspace.File) error {
 	return nil
 }
 
-func (idx *Indexer) indexContent(files []*workspace.File) ([]byte, error) {
+func (idx *Indexer) indexContent(files workspace.Set) ([]byte, error) {
 	indexContent := bytes.NewBuffer(nil)
 
-	entriesLen := len(files)
+	entriesLen := files.Size()
 	if err := idx.writeHeader(indexContent, entriesLen); err != nil {
 		return nil, fmt.Errorf("add: %w", err)
 	}
