@@ -63,8 +63,6 @@ func (w Workspace) ListFiles(matchPath string) ([]*File, error) {
 			files = append(files, &File{Path: cleanPath})
 		}
 
-		fmt.Println(path)
-
 		return nil
 	})
 	if err != nil {
