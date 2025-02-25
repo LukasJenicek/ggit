@@ -54,6 +54,12 @@ func (e *Entry) Content() ([]byte, error) {
 		}
 	}
 
+	for buf.Len()%8 != 0 {
+		if err := binary.Write(buf, binary.BigEndian, []byte{0x00}); err != nil {
+			return nil, fmt.Errorf("encoding entry: %w", err)
+		}
+	}
+
 	return buf.Bytes(), nil
 }
 
