@@ -1,7 +1,6 @@
 package ds
 
 import (
-	"fmt"
 	"sort"
 )
 
@@ -24,7 +23,7 @@ func (s Set[T]) Size() int {
 	return len(s)
 }
 
-func (s Set[T]) SortedValues() []T {
+func (s Set[T]) SortedValues(less func(a, b T) bool) []T {
 	keys := make([]T, 0, len(s))
 
 	for value := range s {
@@ -32,7 +31,7 @@ func (s Set[T]) SortedValues() []T {
 	}
 
 	sort.Slice(keys, func(i, j int) bool {
-		return fmt.Sprint(keys[i]) < fmt.Sprint(keys[j])
+		return less(keys[i], keys[j])
 	})
 
 	return keys
