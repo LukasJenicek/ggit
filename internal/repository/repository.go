@@ -3,6 +3,7 @@ package repository
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/LukasJenicek/ggit/internal/ds"
 	"os"
 	"path/filepath"
 	"time"
@@ -107,13 +108,24 @@ func (r *Repository) Init() error {
 	return nil
 }
 
-func (r *Repository) Add(path string) error {
-	files, err := r.Workspace.ListFiles(path)
-	if err != nil {
-		return fmt.Errorf("list files: %w", err)
+func (r *Repository) Add(paths []string) error {
+	files := []string{}
+
+	for _, path := range paths {
+		f, err := r.Workspace.ListFiles(path)
+		if err != nil {
+			return fmt.Errorf("list files: %w", err)
+		}
+
+		if path == "." {
+			files = f
+			break
+		}
+
+		files = append(files, f...)
 	}
 
-	if err := r.Indexer.Add(files); err != nil {
+	if err := r.Indexer.Add(ds.NewSet(files)); err != nil {
 		return fmt.Errorf("add files to index: %w", err)
 	}
 
@@ -126,7 +138,7 @@ func (r *Repository) Commit() (string, error) {
 		return "", fmt.Errorf("list files: %w", err)
 	}
 
-	entries, err := r.Database.SaveBlobs(files)
+	entries, err := r.Database.SaveBlobs(ds.NewSet(files))
 	if err != nil {
 		return "", fmt.Errorf("save blobs: %w", err)
 	}

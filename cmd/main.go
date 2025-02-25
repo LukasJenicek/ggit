@@ -2,13 +2,11 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"os"
-	"strings"
-
 	"github.com/LukasJenicek/ggit/internal/clock"
 	"github.com/LukasJenicek/ggit/internal/filesystem"
 	"github.com/LukasJenicek/ggit/internal/repository"
+	"log"
+	"os"
 )
 
 func main() {
@@ -59,13 +57,7 @@ func main() {
 			os.Exit(0)
 		}
 
-		path := strings.TrimSpace(os.Args[2])
-		if path == "" {
-			fmt.Println("Nothing specified, nothing added.")
-			os.Exit(0)
-		}
-
-		err := repo.Add(path)
+		err := repo.Add(os.Args[2:])
 		if err != nil {
 			log.Fatalf("add: %v", err)
 		}

@@ -6,7 +6,6 @@ import (
 	"io/fs"
 	"path/filepath"
 	"slices"
-	"sort"
 	"strings"
 
 	"github.com/LukasJenicek/ggit/internal/filesystem"
@@ -28,38 +27,7 @@ type File struct {
 	Path string
 }
 
-type Set map[string]struct{}
-
-func NewSet(values []string) Set {
-	s := Set{}
-	for _, value := range values {
-		s.Add(value)
-	}
-
-	return s
-}
-
-func (s Set) Add(value string) {
-	s[value] = struct{}{}
-}
-
-func (s Set) Size() int {
-	return len(s)
-}
-
-func (s Set) SortedValues() []string {
-	keys := make([]string, 0, len(s))
-
-	for value := range s {
-		keys = append(keys, value)
-	}
-
-	sort.Strings(keys)
-
-	return keys
-}
-
-func (w Workspace) ListFiles(matchPath string) (Set, error) {
+func (w Workspace) ListFiles(matchPath string) ([]string, error) {
 	// TODO: load more ignored files from config
 	ignore := []string{".", "..", ".git"}
 
@@ -104,5 +72,5 @@ func (w Workspace) ListFiles(matchPath string) (Set, error) {
 		return nil, fmt.Errorf("walk recursively dir %q: %w", w.rootDir, err)
 	}
 
-	return NewSet(files), nil
+	return files, nil
 }
