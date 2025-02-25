@@ -6,7 +6,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/LukasJenicek/ggit/internal/ds"
 	"github.com/LukasJenicek/ggit/internal/filesystem"
 	"github.com/LukasJenicek/ggit/internal/helpers"
 	"github.com/LukasJenicek/ggit/internal/workspace"
@@ -32,11 +31,11 @@ func TestWorkspace_ListFiles(t *testing.T) {
 	assert.EqualValues(
 		t,
 		files,
-		ds.NewSet([]string{
+		[]string{
 			filepath.Join(testDataFolder, "a", "a.txt"),
 			filepath.Join(testDataFolder, "a.txt"),
 			filepath.Join(testDataFolder, "b", "b.txt"),
-		}),
+		},
 	)
 }
 
@@ -60,11 +59,11 @@ func TestWorkspace_ListSpecificFiles(t *testing.T) {
 	assert.EqualValues(
 		t,
 		files,
-		ds.NewSet([]string{
+		[]string{
 			filepath.Join(testDataFolder, "a", "a.txt"),
 			filepath.Join(testDataFolder, "a.txt"),
 			filepath.Join(testDataFolder, "b", "b.txt"),
-		}),
+		},
 	)
 }
 
@@ -88,9 +87,9 @@ func TestWorkspace_ListSpecificFile(t *testing.T) {
 	assert.EqualValues(
 		t,
 		files,
-		ds.NewSet([]string{
+		[]string{
 			filepath.Join(testDataFolder, "a", "a.txt"),
 			filepath.Join(testDataFolder, "a.txt"),
-		}),
+		},
 	)
 }

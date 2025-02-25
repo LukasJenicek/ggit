@@ -6,12 +6,11 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
-
 	"github.com/LukasJenicek/ggit/internal/ds"
 	"github.com/LukasJenicek/ggit/internal/filesystem"
 	"github.com/LukasJenicek/ggit/internal/hasher"
+	"os"
+	"path/filepath"
 )
 
 type Database struct {
@@ -88,7 +87,11 @@ func (d *Database) Store(o Object) ([]byte, error) {
 func (d *Database) SaveBlobs(files ds.Set[string]) ([]*Entry, error) {
 	entries := make([]*Entry, 0, len(files))
 
-	for _, file := range files.SortedValues() {
+	filesSorted := files.SortedValues(func(a, b string) bool {
+		return a < b
+	})
+
+	for _, file := range filesSorted {
 		entry, err := d.saveBlob(file)
 		if err != nil {
 			return nil, fmt.Errorf("save blob: %w", err)
