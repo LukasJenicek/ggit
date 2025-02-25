@@ -4,10 +4,21 @@ import (
 	"sort"
 )
 
+// Set
+// TODO: Implement other funcs to support interface for Set struct
+// Contains(value T) bool - to check if an element exists in the set
+// Remove(value T) - to remove an element from the set
+// Union(other Set[T]) Set[T] - to create a union of two sets
+// Intersection(other Set[T]) Set[T] - to create an intersection of two sets
 type Set[T comparable] map[T]struct{}
 
 func NewSet[T comparable](values []T) Set[T] {
 	s := Set[T]{}
+
+	if values == nil {
+		return s
+	}
+
 	for _, value := range values {
 		s.Add(value)
 	}
