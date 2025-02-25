@@ -30,12 +30,11 @@ func TestWorkspace_ListFiles(t *testing.T) {
 
 	assert.EqualValues(
 		t,
-		files,
 		[]string{
 			filepath.Join(testDataFolder, "a", "a.txt"),
 			filepath.Join(testDataFolder, "a.txt"),
 			filepath.Join(testDataFolder, "b", "b.txt"),
-		},
+		}, files,
 	)
 }
 
@@ -58,12 +57,11 @@ func TestWorkspace_ListSpecificFiles(t *testing.T) {
 
 	assert.EqualValues(
 		t,
-		files,
 		[]string{
 			filepath.Join(testDataFolder, "a", "a.txt"),
 			filepath.Join(testDataFolder, "a.txt"),
 			filepath.Join(testDataFolder, "b", "b.txt"),
-		},
+		}, files,
 	)
 }
 
@@ -86,10 +84,9 @@ func TestWorkspace_ListSpecificFile(t *testing.T) {
 
 	assert.EqualValues(
 		t,
-		files,
 		[]string{
 			filepath.Join(testDataFolder, "a", "a.txt"),
 			filepath.Join(testDataFolder, "a.txt"),
-		},
+		}, files,
 	)
 }

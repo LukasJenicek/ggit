@@ -47,7 +47,7 @@ func (r *Refs) UpdateHead(commitID string) error {
 		return errors.New("commit id is empty")
 	}
 
-	if err := r.fileWriter.Update(r.headFilePath, []byte(commitID)); err != nil {
+	if err := r.fileWriter.Write(r.headFilePath, []byte(commitID)); err != nil {
 		return fmt.Errorf("update : %w", err)
 	}
 
