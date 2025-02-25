@@ -3,7 +3,6 @@ package repository
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/LukasJenicek/ggit/internal/ds"
 	"os"
 	"path/filepath"
 	"time"
@@ -12,6 +11,7 @@ import (
 	"github.com/LukasJenicek/ggit/internal/config"
 	"github.com/LukasJenicek/ggit/internal/database"
 	"github.com/LukasJenicek/ggit/internal/database/index"
+	"github.com/LukasJenicek/ggit/internal/ds"
 	"github.com/LukasJenicek/ggit/internal/filesystem"
 	"github.com/LukasJenicek/ggit/internal/workspace"
 )
@@ -119,6 +119,7 @@ func (r *Repository) Add(paths []string) error {
 
 		if path == "." {
 			files = f
+
 			break
 		}
 
