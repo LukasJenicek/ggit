@@ -1,12 +1,12 @@
 package workspace_test
 
 import (
-	"github.com/LukasJenicek/ggit/internal/ds"
 	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/LukasJenicek/ggit/internal/ds"
 	"github.com/LukasJenicek/ggit/internal/filesystem"
 	"github.com/LukasJenicek/ggit/internal/helpers"
 	"github.com/LukasJenicek/ggit/internal/workspace"

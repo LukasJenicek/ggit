@@ -38,6 +38,10 @@ func (w Workspace) ListFiles(matchPath string) ([]string, error) {
 			return filepath.SkipDir
 		}
 
+		if err != nil {
+			return err
+		}
+
 		// do not include root folder name
 		if filepath.Base(w.rootDir) == d.Name() {
 			return nil
@@ -57,7 +61,9 @@ func (w Workspace) ListFiles(matchPath string) ([]string, error) {
 			files = append(files, cleanPath)
 		}
 
-		match, err := filepath.Match(matchPath, d.Name())
+		var match bool
+
+		match, err = filepath.Match(matchPath, d.Name())
 		if err != nil {
 			return fmt.Errorf("matching path %q with pattern %q: %w", cleanPath, matchPath, err)
 		}
