@@ -1,6 +1,7 @@
 package workspace_test
 
 import (
+	"github.com/LukasJenicek/ggit/internal/ds"
 	"path/filepath"
 	"testing"
 
@@ -31,7 +32,7 @@ func TestWorkspace_ListFiles(t *testing.T) {
 	assert.EqualValues(
 		t,
 		files,
-		workspace.NewSet([]string{
+		ds.NewSet([]string{
 			filepath.Join(testDataFolder, "a", "a.txt"),
 			filepath.Join(testDataFolder, "a.txt"),
 			filepath.Join(testDataFolder, "b", "b.txt"),
@@ -59,7 +60,7 @@ func TestWorkspace_ListSpecificFiles(t *testing.T) {
 	assert.EqualValues(
 		t,
 		files,
-		workspace.NewSet([]string{
+		ds.NewSet([]string{
 			filepath.Join(testDataFolder, "a", "a.txt"),
 			filepath.Join(testDataFolder, "a.txt"),
 			filepath.Join(testDataFolder, "b", "b.txt"),
@@ -87,7 +88,7 @@ func TestWorkspace_ListSpecificFile(t *testing.T) {
 	assert.EqualValues(
 		t,
 		files,
-		workspace.NewSet([]string{
+		ds.NewSet([]string{
 			filepath.Join(testDataFolder, "a", "a.txt"),
 			filepath.Join(testDataFolder, "a.txt"),
 		}),

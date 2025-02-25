@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/LukasJenicek/ggit/internal/ds"
 	"os"
 
 	"github.com/LukasJenicek/ggit/internal/database"
 	"github.com/LukasJenicek/ggit/internal/filesystem"
 	"github.com/LukasJenicek/ggit/internal/hasher"
-	"github.com/LukasJenicek/ggit/internal/workspace"
 )
 
 const (
@@ -44,7 +44,7 @@ func NewIndexer(
 	}
 }
 
-func (idx *Indexer) Add(files workspace.Set) error {
+func (idx *Indexer) Add(files ds.Set[string]) error {
 	if err := idx.createIndexFile(); err != nil {
 		return fmt.Errorf("create index file: %w", err)
 	}
@@ -61,7 +61,7 @@ func (idx *Indexer) Add(files workspace.Set) error {
 	return nil
 }
 
-func (idx *Indexer) indexContent(files workspace.Set) ([]byte, error) {
+func (idx *Indexer) indexContent(files ds.Set[string]) ([]byte, error) {
 	indexContent := bytes.NewBuffer(nil)
 
 	entriesLen := files.Size()

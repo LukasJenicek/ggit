@@ -6,12 +6,12 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/LukasJenicek/ggit/internal/ds"
 	"os"
 	"path/filepath"
 
 	"github.com/LukasJenicek/ggit/internal/filesystem"
 	"github.com/LukasJenicek/ggit/internal/hasher"
-	"github.com/LukasJenicek/ggit/internal/workspace"
 )
 
 type Database struct {
@@ -85,7 +85,7 @@ func (d *Database) Store(o Object) ([]byte, error) {
 	return oid, nil
 }
 
-func (d *Database) SaveBlobs(files workspace.Set) ([]*Entry, error) {
+func (d *Database) SaveBlobs(files ds.Set[string]) ([]*Entry, error) {
 	entries := make([]*Entry, 0, len(files))
 
 	for _, file := range files.SortedValues() {
