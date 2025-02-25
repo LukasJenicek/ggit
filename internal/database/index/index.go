@@ -54,7 +54,7 @@ func (idx *Indexer) Add(files ds.Set[string]) error {
 		return fmt.Errorf("index content: %w", err)
 	}
 
-	if err = idx.fileWriter.Update(idx.indexFilePath, indexContent); err != nil {
+	if err = idx.fileWriter.Write(idx.indexFilePath, indexContent); err != nil {
 		return fmt.Errorf("update index file: %w", err)
 	}
 
