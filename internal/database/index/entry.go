@@ -54,10 +54,11 @@ func (e *Entry) Content() ([]byte, error) {
 		}
 	}
 
-	for buf.Len()%8 != 0 {
-		if err := binary.Write(buf, binary.BigEndian, []byte{0x00}); err != nil {
-			return nil, fmt.Errorf("encoding entry: %w", err)
-		}
+	// 1-8 nul bytes as necessary to pad the entry to a multiple of eight bytes
+	// while keeping the name NUL-terminated.
+	pad := buf.Len() % 8
+	if err := binary.Write(buf, binary.BigEndian, make([]byte, pad)); err != nil {
+		return nil, fmt.Errorf("encoding entry: %w", err)
 	}
 
 	return buf.Bytes(), nil
