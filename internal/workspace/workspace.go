@@ -24,11 +24,19 @@ type Workspace struct {
 	fs      filesystem.Fs
 }
 
-func New(rootDir string, fs filesystem.Fs) *Workspace {
+func New(rootDir string, fs filesystem.Fs) (*Workspace, error) {
+	if fs == nil {
+		return nil, errors.New("filesystem must not be nil")
+	}
+
+	if rootDir == "" {
+		return nil, errors.New("root dir must not be empty")
+	}
+
 	return &Workspace{
 		rootDir: rootDir,
 		fs:      fs,
-	}
+	}, nil
 }
 
 func (w Workspace) ListFiles(matchPath string) ([]string, error) {

@@ -72,11 +72,21 @@ func New(fs filesystem.Fs, clock clock.Clock, cwd string) (*Repository, error) {
 		return nil, fmt.Errorf("init database: %w", err)
 	}
 
+	indexer, err := index.NewIndexer(fs, writer, locker, db, gitPath, cwd)
+	if err != nil {
+		return nil, fmt.Errorf("init indexer: %w", err)
+	}
+
+	w, err := workspace.New(cwd, fs)
+	if err != nil {
+		return nil, fmt.Errorf("init workspace: %w", err)
+	}
+	
 	return &Repository{
 		FS:          fs,
-		Workspace:   workspace.New(cwd, fs),
+		Workspace:   w,
 		Database:    db,
-		Indexer:     index.NewIndexer(fs, writer, locker, db, gitPath, cwd),
+		Indexer:     indexer,
 		Clock:       clock,
 		Refs:        refs,
 		Config:      cfg,
