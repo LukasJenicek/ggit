@@ -58,8 +58,6 @@ func (f *FileLocker) Lock(path string) (*LockFile, error) {
 }
 
 func (f *FileLocker) Unlock(lock *LockFile) error {
-	fmt.Println("trying to remove", lock.Path)
-
 	if err := f.fs.Remove(lock.Path); err != nil {
 		return fmt.Errorf("remove lock file %q: %w", lock.Path, err)
 	}

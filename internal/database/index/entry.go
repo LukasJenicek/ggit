@@ -26,7 +26,7 @@ type Entry struct {
 	oid []byte
 	// length of filename
 	flags int16
-	path  []byte
+	Path  []byte
 }
 
 func (e *Entry) Content() ([]byte, error) {
@@ -45,7 +45,7 @@ func (e *Entry) Content() ([]byte, error) {
 		e.fileSize,
 		e.oid,
 		e.flags,
-		e.path,
+		e.Path,
 		[]byte{0x00},
 	}
 
@@ -80,7 +80,7 @@ func NewEntryFromBytes(data []byte, pathLen int) *Entry {
 		fileSize:  int32(binary.BigEndian.Uint32(data[36:40])),
 		oid:       data[40:60],
 		flags:     int16(binary.BigEndian.Uint16(data[60:62])),
-		path:      data[62 : 62+pathLen],
+		Path:      data[62 : 62+pathLen],
 	}
 }
 
@@ -118,6 +118,6 @@ func NewEntry(pathname string, fInfo os.FileInfo, oid []byte) (*Entry, error) {
 		fileSize:  int32(stat.Size),
 		oid:       oid,
 		flags:     int16(flags),
-		path:      []byte(pathname),
+		Path:      []byte(pathname),
 	}, nil
 }
