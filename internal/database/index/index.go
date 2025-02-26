@@ -37,7 +37,31 @@ func NewIndexer(
 	database *database.Database,
 	gitPath string,
 	rootDir string,
-) *Indexer {
+) (*Indexer, error) {
+	if fs == nil {
+		return nil, fmt.Errorf("file system is nil")
+	}
+
+	if fileWriter == nil {
+		return nil, fmt.Errorf("file writer is nil")
+	}
+
+	if locker == nil {
+		return nil, fmt.Errorf("locker is nil")
+	}
+
+	if database == nil {
+		return nil, fmt.Errorf("database is nil")
+	}
+
+	if gitPath == "" {
+		return nil, fmt.Errorf("git path is empty")
+	}
+
+	if rootDir == "" {
+		return nil, fmt.Errorf("root dir is empty")
+	}
+
 	return &Indexer{
 		fs:         fs,
 		fileWriter: fileWriter,
@@ -46,7 +70,7 @@ func NewIndexer(
 
 		indexFilePath: filepath.Join(gitPath, "index"),
 		rootDir:       rootDir,
-	}
+	}, nil
 }
 
 func (idx *Indexer) Add(files []string) error {

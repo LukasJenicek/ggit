@@ -53,11 +53,17 @@ func TestNew(t *testing.T) {
 		d, err := database.New(fs, gitPath)
 		require.NoError(t, err)
 
+		w, err := workspace.New(cwd, fs)
+		require.NoError(t, err)
+
+		indexer, err := index.NewIndexer(fs, writer, locker, d, gitPath, cwd)
+		require.NoError(t, err)
+
 		require.EqualValues(t, &repository.Repository{
 			FS:        fs,
-			Workspace: workspace.New(cwd, fs),
+			Workspace: w,
 			Database:  d,
-			Indexer:   index.NewIndexer(fs, writer, locker, d, gitPath, cwd),
+			Indexer:   indexer,
 			Clock:     fakeClock,
 			Refs:      refs,
 			Config: &config.Config{
@@ -97,11 +103,17 @@ func TestNew(t *testing.T) {
 		db, err := database.New(fs, gitPath)
 		require.NoError(t, err)
 
+		w, err := workspace.New(cwd, fs)
+		require.NoError(t, err)
+
+		indexer, err := index.NewIndexer(fs, writer, locker, db, gitPath, cwd)
+		require.NoError(t, err)
+
 		require.EqualValues(t, &repository.Repository{
 			FS:        fs,
-			Workspace: workspace.New(cwd, fs),
+			Workspace: w,
 			Database:  db,
-			Indexer:   index.NewIndexer(fs, writer, filesystem.NewFileLocker(fs), db, gitPath, cwd),
+			Indexer:   indexer,
 			Clock:     fakeClock,
 			Refs:      refs,
 			Config: &config.Config{

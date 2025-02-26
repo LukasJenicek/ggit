@@ -1,6 +1,7 @@
 package workspace_test
 
 import (
+	"github.com/stretchr/testify/require"
 	"path/filepath"
 	"testing"
 
@@ -21,7 +22,8 @@ func TestWorkspace_ListFiles(t *testing.T) {
 
 	testDataFolder := filepath.Join(projectRootFolder, "testdata")
 
-	w := workspace.New(testDataFolder, filesystem.New())
+	w, err := workspace.New(testDataFolder, filesystem.New())
+	require.NoError(t, err)
 
 	files, err := w.ListFiles(".")
 	if err != nil {
@@ -48,7 +50,8 @@ func TestWorkspace_ListSpecificFiles(t *testing.T) {
 
 	testDataFolder := filepath.Join(projectRootFolder, "testdata")
 
-	w := workspace.New(testDataFolder, filesystem.New())
+	w, err := workspace.New(testDataFolder, filesystem.New())
+	require.NoError(t, err)
 
 	files, err := w.ListFiles("*.txt")
 	if err != nil {
@@ -75,7 +78,8 @@ func TestWorkspace_ListSpecificFile(t *testing.T) {
 
 	testDataFolder := filepath.Join(projectRootFolder, "testdata")
 
-	w := workspace.New(testDataFolder, filesystem.New())
+	w, err := workspace.New(testDataFolder, filesystem.New())
+	require.NoError(t, err)
 
 	files, err := w.ListFiles("a.txt")
 	if err != nil {
