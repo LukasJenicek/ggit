@@ -64,22 +64,23 @@ func (w Workspace) ListFiles(matchPath string) ([]string, error) {
 			files = append(files, cleanPath)
 		}
 
-		var match bool
-		match, err = filepath.Match(matchPath, d.Name())
+		match, err := filepath.Match(matchPath, d.Name())
 		if err != nil {
 			return fmt.Errorf("matching path %q with pattern %q: %w", cleanPath, matchPath, err)
 		}
 
-		if !match {
-			return &ErrPathNotMatched{Pattern: matchPath}
+		if match {
+			files = append(files, cleanPath)
 		}
-
-		files = append(files, cleanPath)
 
 		return nil
 	})
 	if err != nil {
 		return nil, fmt.Errorf("walk recursively dir %q: %w", w.rootDir, err)
+	}
+
+	if len(files) == 0 {
+		return nil, &ErrPathNotMatched{Pattern: matchPath}
 	}
 
 	return files, nil
