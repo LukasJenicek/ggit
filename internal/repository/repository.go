@@ -132,7 +132,7 @@ func (r *Repository) Add(paths []string) error {
 		files = append(files, f...)
 	}
 
-	if err := r.Indexer.Add(ds.NewSet(files)); err != nil {
+	if err := r.Indexer.Add(files); err != nil {
 		return fmt.Errorf("add files to index: %w", err)
 	}
 
