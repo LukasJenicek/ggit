@@ -44,6 +44,7 @@ func (w Workspace) ListFiles(matchPath string) ([]string, error) {
 	ignore := []string{".", "..", ".git"}
 
 	var files []string
+
 	err := w.fs.WalkDir(w.rootDir, func(path string, d fs.DirEntry, err error) error {
 		if slices.Contains(ignore, d.Name()) {
 			return filepath.SkipDir

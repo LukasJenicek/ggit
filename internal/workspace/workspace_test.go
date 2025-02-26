@@ -1,11 +1,11 @@
 package workspace_test
 
 import (
-	"github.com/stretchr/testify/require"
 	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/LukasJenicek/ggit/internal/filesystem"
 	"github.com/LukasJenicek/ggit/internal/helpers"

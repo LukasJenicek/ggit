@@ -3,6 +3,10 @@ package repository
 import (
 	"encoding/hex"
 	"fmt"
+	"os"
+	"path/filepath"
+	"time"
+
 	"github.com/LukasJenicek/ggit/internal/clock"
 	"github.com/LukasJenicek/ggit/internal/config"
 	"github.com/LukasJenicek/ggit/internal/database"
@@ -10,9 +14,6 @@ import (
 	"github.com/LukasJenicek/ggit/internal/ds"
 	"github.com/LukasJenicek/ggit/internal/filesystem"
 	"github.com/LukasJenicek/ggit/internal/workspace"
-	"os"
-	"path/filepath"
-	"time"
 )
 
 // Repository
@@ -81,7 +82,7 @@ func New(fs filesystem.Fs, clock clock.Clock, cwd string) (*Repository, error) {
 	if err != nil {
 		return nil, fmt.Errorf("init workspace: %w", err)
 	}
-	
+
 	return &Repository{
 		FS:          fs,
 		Workspace:   w,
@@ -128,6 +129,7 @@ func (r *Repository) Init() error {
 
 func (r *Repository) Add(paths []string) error {
 	var files []string
+
 	for _, path := range paths {
 		f, err := r.Workspace.ListFiles(path)
 		if err != nil {
@@ -136,6 +138,7 @@ func (r *Repository) Add(paths []string) error {
 
 		if path == "." {
 			files = f
+
 			break
 		}
 
