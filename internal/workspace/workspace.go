@@ -62,7 +62,6 @@ func (w Workspace) ListFiles(matchPath string) ([]string, error) {
 		}
 
 		var match bool
-
 		match, err = filepath.Match(matchPath, d.Name())
 		if err != nil {
 			return fmt.Errorf("matching path %q with pattern %q: %w", cleanPath, matchPath, err)

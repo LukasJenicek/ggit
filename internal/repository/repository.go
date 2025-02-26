@@ -117,8 +117,7 @@ func (r *Repository) Init() error {
 }
 
 func (r *Repository) Add(paths []string) error {
-	files := []string{}
-
+	var files []string
 	for _, path := range paths {
 		f, err := r.Workspace.ListFiles(path)
 		if err != nil {
@@ -157,7 +156,7 @@ func (r *Repository) Commit() (string, error) {
 		return "", fmt.Errorf("save blobs: %w", err)
 	}
 
-	root, err := database.Build(database.NewTree(nil, ""), entries)
+	root, err := database.Build(database.NewRootTree(), entries)
 	if err != nil {
 		return "", fmt.Errorf("build tree: %w", err)
 	}
