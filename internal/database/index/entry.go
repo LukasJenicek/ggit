@@ -66,7 +66,12 @@ func (e *Entry) Content() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func NewEntryFromBytes(data []byte, pathLen int) *Entry {
+func NewEntryFromBytes(data []byte, pathLen int) (*Entry, error) {
+	length := 62 + pathLen
+	if len(data) < length {
+		return nil, fmt.Errorf("entry too short (%d < %d)", len(data), length)
+	}
+
 	return &Entry{
 		ctime:     int32(binary.BigEndian.Uint32(data[0:4])),
 		ctimeNsec: int32(binary.BigEndian.Uint32(data[4:8])),
@@ -81,7 +86,7 @@ func NewEntryFromBytes(data []byte, pathLen int) *Entry {
 		oid:       data[40:60],
 		flags:     int16(binary.BigEndian.Uint16(data[60:62])),
 		Path:      data[62 : 62+pathLen],
-	}
+	}, nil
 }
 
 // NewEntry
