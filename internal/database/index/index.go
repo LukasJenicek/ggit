@@ -85,6 +85,10 @@ func (idx *Indexer) LoadIndex() ([]*Entry, error) {
 		return nil, fmt.Errorf("read index file: %w", err)
 	}
 
+	if len(content) < 12 {
+		return nil, fmt.Errorf("invalid index file format: file too short")
+	}
+
 	entryLen := binary.BigEndian.Uint32(content[8:12])
 
 	entries := make([]*Entry, 0, entryLen)
@@ -103,7 +107,12 @@ func (idx *Indexer) LoadIndex() ([]*Entry, error) {
 			}
 		}
 
-		entries = append(entries, NewEntryFromBytes(content[currPosition:cursorPos], int(pathLen)))
+		entry, err := NewEntryFromBytes(content[currPosition:cursorPos], int(pathLen))
+		if err != nil {
+			return nil, fmt.Errorf("create entry: %w", err)
+		}
+
+		entries = append(entries, entry)
 
 		// finding last null byte of entry
 		for cursorPos > 0 && content[cursorPos-1] != 0 {
