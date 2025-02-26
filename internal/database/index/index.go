@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/LukasJenicek/ggit/internal/database"
 	"github.com/LukasJenicek/ggit/internal/ds"
@@ -43,17 +44,26 @@ func NewIndexer(
 		database:   database,
 		locker:     locker,
 
-		indexFilePath: gitPath + "/index",
+		indexFilePath: filepath.Join(gitPath, "index"),
 		rootDir:       rootDir,
 	}
 }
 
-func (idx *Indexer) Add(files ds.Set[string]) error {
+func (idx *Indexer) Add(files []string) error {
 	if err := idx.createIndexFile(); err != nil {
 		return fmt.Errorf("create index file: %w", err)
 	}
 
-	indexContent, err := idx.indexContent(files)
+	entries, err := idx.LoadIndex()
+	if err != nil {
+		return fmt.Errorf("load index: %w", err)
+	}
+
+	for _, e := range entries {
+		files = append(files, string(e.Path))
+	}
+
+	indexContent, err := idx.indexContent(ds.NewSet(files))
 	if err != nil {
 		return fmt.Errorf("index content: %w", err)
 	}
@@ -83,6 +93,10 @@ func (idx *Indexer) LoadIndex() ([]*Entry, error) {
 	content, err := io.ReadAll(indexFile)
 	if err != nil {
 		return nil, fmt.Errorf("read index file: %w", err)
+	}
+
+	if len(content) == 0 {
+		return nil, nil
 	}
 
 	if len(content) < 12 {
