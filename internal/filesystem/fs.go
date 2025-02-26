@@ -30,6 +30,7 @@ type Fs interface {
 
 type File interface {
 	io.Closer
+	io.Reader
 
 	Write(b []byte) (int, error)
 	Sync() error
