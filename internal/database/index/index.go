@@ -103,10 +103,10 @@ func (idx *Indexer) LoadIndex() ([]*Entry, error) {
 			}
 		}
 
-		entries = append(entries, NewEntryFromBytes(content[currPosition:currPosition], int(pathLen)))
+		entries = append(entries, NewEntryFromBytes(content[currPosition:cursorPos], int(pathLen)))
 
 		// finding last null byte of entry
-		for (content[cursorPos-1]) != 0 {
+		for cursorPos > 0 && content[cursorPos-1] != 0 {
 			cursorPos++
 		}
 

@@ -20,13 +20,14 @@ func (a *AtomicFileWriter) Write(path string, content []byte) error {
 	if err != nil {
 		return fmt.Errorf("open tmp file %q: %w", tmpFilePath, err)
 	}
+	defer f.Close()
 
 	if _, err := f.Write(content); err != nil {
 		return fmt.Errorf("write to tmp file %q: %w", tmpFilePath, err)
 	}
 
 	if err = f.Sync(); err != nil {
-		return fmt.Errorf("sync lock file %q: %w", tmpFilePath, err)
+		return fmt.Errorf("sync tmp file %q: %w", tmpFilePath, err)
 	}
 
 	if err = a.fs.Rename(tmpFilePath, path); err != nil {
