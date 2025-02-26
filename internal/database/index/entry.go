@@ -10,22 +10,22 @@ import (
 )
 
 type Entry struct {
-	ctime     int32
-	ctimeNsec int32
-	mtime     int32
-	mtimeNsec int32
+	ctime     uint32
+	ctimeNsec uint32
+	mtime     uint32
+	mtimeNsec uint32
 	// id of the hardware device the file is stored on
-	dev   int32
-	inode int32
-	mode  int32
+	dev   uint32
+	inode uint32
+	mode  uint32
 	uid   uint32
 	gid   uint32
 	// size of file
-	fileSize int32
+	fileSize uint32
 	// 20 bytes
 	oid []byte
 	// length of filename
-	flags int16
+	flags uint16
 	Path  []byte
 }
 
@@ -73,18 +73,18 @@ func NewEntryFromBytes(data []byte, pathLen int) (*Entry, error) {
 	}
 
 	return &Entry{
-		ctime:     int32(binary.BigEndian.Uint32(data[0:4])),
-		ctimeNsec: int32(binary.BigEndian.Uint32(data[4:8])),
-		mtime:     int32(binary.BigEndian.Uint32(data[8:12])),
-		mtimeNsec: int32(binary.BigEndian.Uint32(data[12:16])),
-		dev:       int32(binary.BigEndian.Uint32(data[16:20])),
-		inode:     int32(binary.BigEndian.Uint32(data[20:24])),
-		mode:      int32(binary.BigEndian.Uint32(data[24:28])),
+		ctime:     binary.BigEndian.Uint32(data[0:4]),
+		ctimeNsec: binary.BigEndian.Uint32(data[4:8]),
+		mtime:     binary.BigEndian.Uint32(data[8:12]),
+		mtimeNsec: binary.BigEndian.Uint32(data[12:16]),
+		dev:       binary.BigEndian.Uint32(data[16:20]),
+		inode:     binary.BigEndian.Uint32(data[20:24]),
+		mode:      binary.BigEndian.Uint32(data[24:28]),
 		uid:       binary.BigEndian.Uint32(data[28:32]),
 		gid:       binary.BigEndian.Uint32(data[32:36]),
-		fileSize:  int32(binary.BigEndian.Uint32(data[36:40])),
+		fileSize:  binary.BigEndian.Uint32(data[36:40]),
 		oid:       data[40:60],
-		flags:     int16(binary.BigEndian.Uint16(data[60:62])),
+		flags:     binary.BigEndian.Uint16(data[60:62]),
 		Path:      data[62 : 62+pathLen],
 	}, nil
 }
@@ -111,18 +111,18 @@ func NewEntry(pathname string, fInfo os.FileInfo, oid []byte) (*Entry, error) {
 	}
 
 	return &Entry{
-		ctime:     int32(stat.Ctim.Sec),
-		ctimeNsec: int32(stat.Ctim.Nsec),
-		mtime:     int32(stat.Mtim.Sec),
-		mtimeNsec: int32(stat.Mtim.Nsec),
-		dev:       int32(stat.Dev),
-		inode:     int32(stat.Ino),
-		mode:      int32(mode),
+		ctime:     uint32(stat.Ctim.Sec),
+		ctimeNsec: uint32(stat.Ctim.Nsec),
+		mtime:     uint32(stat.Mtim.Sec),
+		mtimeNsec: uint32(stat.Mtim.Nsec),
+		dev:       uint32(stat.Dev),
+		inode:     uint32(stat.Ino),
+		mode:      uint32(mode),
 		uid:       stat.Uid,
 		gid:       stat.Gid,
-		fileSize:  int32(stat.Size),
+		fileSize:  uint32(stat.Size),
 		oid:       oid,
-		flags:     int16(flags),
+		flags:     uint16(flags),
 		Path:      []byte(pathname),
 	}, nil
 }

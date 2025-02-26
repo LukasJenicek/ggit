@@ -1,6 +1,7 @@
 package filesystem
 
 import (
+	"errors"
 	"fmt"
 	"os"
 )
@@ -12,11 +13,11 @@ type AtomicFileWriter struct {
 
 func NewAtomicFileWriter(fs Fs, locker Locker) (*AtomicFileWriter, error) {
 	if fs == nil {
-		return nil, fmt.Errorf("fs must not be nil")
+		return nil, errors.New("fs must not be nil")
 	}
 
 	if locker == nil {
-		return nil, fmt.Errorf("locker must not be nil")
+		return nil, errors.New("locker must not be nil")
 	}
 
 	return &AtomicFileWriter{

@@ -3,13 +3,13 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/LukasJenicek/ggit/internal/workspace"
 	"log"
 	"os"
 
 	"github.com/LukasJenicek/ggit/internal/clock"
 	"github.com/LukasJenicek/ggit/internal/filesystem"
 	"github.com/LukasJenicek/ggit/internal/repository"
+	"github.com/LukasJenicek/ggit/internal/workspace"
 )
 
 func main() {
