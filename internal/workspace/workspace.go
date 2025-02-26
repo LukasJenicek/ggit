@@ -11,6 +11,14 @@ import (
 	"github.com/LukasJenicek/ggit/internal/filesystem"
 )
 
+type ErrPathNotMatched struct {
+	Pattern string
+}
+
+func (e *ErrPathNotMatched) Error() string {
+	return fmt.Sprintf("fatal: pathspec %q did not match any files", e.Pattern)
+}
+
 type Workspace struct {
 	rootDir string
 	fs      filesystem.Fs
@@ -27,8 +35,7 @@ func (w Workspace) ListFiles(matchPath string) ([]string, error) {
 	// TODO: load more ignored files from config
 	ignore := []string{".", "..", ".git"}
 
-	files := []string{}
-
+	var files []string
 	err := w.fs.WalkDir(w.rootDir, func(path string, d fs.DirEntry, err error) error {
 		if slices.Contains(ignore, d.Name()) {
 			return filepath.SkipDir
@@ -63,9 +70,11 @@ func (w Workspace) ListFiles(matchPath string) ([]string, error) {
 			return fmt.Errorf("matching path %q with pattern %q: %w", cleanPath, matchPath, err)
 		}
 
-		if match {
-			files = append(files, cleanPath)
+		if !match {
+			return &ErrPathNotMatched{Pattern: matchPath}
 		}
+
+		files = append(files, cleanPath)
 
 		return nil
 	})

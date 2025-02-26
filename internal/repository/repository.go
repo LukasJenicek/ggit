@@ -126,7 +126,6 @@ func (r *Repository) Add(paths []string) error {
 
 		if path == "." {
 			files = f
-
 			break
 		}
 

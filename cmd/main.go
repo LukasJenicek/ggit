@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"github.com/LukasJenicek/ggit/internal/workspace"
 	"log"
 	"os"
 
@@ -52,14 +54,20 @@ func main() {
 		if len(os.Args) < 3 {
 			fmt.Printf("usage: %s add <pattern>\n", os.Args[0])
 			fmt.Println("Examples:")
-			fmt.Println("  Add single file:  ggit add file.txt")
-			fmt.Println("  Add using glob pattern:   ggit add \"*.go\"")
+			fmt.Println("  Add single file: ggit add file.txt")
+			fmt.Println("  Add using glob pattern: ggit add \"*.go\"")
 
 			os.Exit(0)
 		}
 
 		err := repo.Add(os.Args[2:])
 		if err != nil {
+			var cErr *workspace.ErrPathNotMatched
+			if errors.As(err, &cErr) {
+				fmt.Println(cErr)
+				os.Exit(128)
+			}
+
 			log.Fatalf("add: %v", err)
 		}
 	default:
