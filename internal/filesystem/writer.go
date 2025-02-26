@@ -6,15 +6,36 @@ import (
 )
 
 type AtomicFileWriter struct {
-	fs Fs
+	locker Locker
+	fs     Fs
 }
 
-func NewAtomicFileWriter(fs Fs) *AtomicFileWriter {
-	return &AtomicFileWriter{fs: fs}
+func NewAtomicFileWriter(fs Fs, locker Locker) (*AtomicFileWriter, error) {
+	if fs == nil {
+		return nil, fmt.Errorf("fs must not be nil")
+	}
+
+	if locker == nil {
+		return nil, fmt.Errorf("locker must not be nil")
+	}
+
+	return &AtomicFileWriter{
+		fs:     fs,
+		locker: locker,
+	}, nil
 }
 
 func (a *AtomicFileWriter) Write(path string, content []byte) error {
 	tmpFilePath := path + ".tmp"
+
+	lock, err := a.locker.Lock(path)
+	if err != nil {
+		return fmt.Errorf("lock index: %w", err)
+	}
+
+	defer func() {
+		err = a.locker.Unlock(lock)
+	}()
 
 	f, err := a.fs.OpenFile(tmpFilePath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0o644)
 	if err != nil {

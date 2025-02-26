@@ -24,12 +24,20 @@ type Object interface {
 	Content() ([]byte, error)
 }
 
-func New(fs filesystem.Fs, gitDir string) *Database {
+func New(fs filesystem.Fs, gitDir string) (*Database, error) {
+	if fs == nil {
+		return nil, fmt.Errorf("fs must not be nil")
+	}
+
+	if gitDir == "" {
+		return nil, fmt.Errorf("git dir must not be empty")
+	}
+
 	return &Database{
 		fs:          fs,
 		gitRootDir:  gitDir,
-		objectsPath: gitDir + "/objects",
-	}
+		objectsPath: filepath.Join(gitDir, "objects"),
+	}, nil
 }
 
 // StoreTree

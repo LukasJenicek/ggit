@@ -55,20 +55,28 @@ func New(fs filesystem.Fs, clock clock.Clock, cwd string) (*Repository, error) {
 		return nil, fmt.Errorf("load git config: %w", err)
 	}
 
-	writer := filesystem.NewAtomicFileWriter(fs)
+	locker := filesystem.NewFileLocker(fs)
+
+	writer, err := filesystem.NewAtomicFileWriter(fs, locker)
+	if err != nil {
+		return nil, fmt.Errorf("create file writer: %w", err)
+	}
 
 	refs, err := database.NewRefs(fs, gitPath, writer)
 	if err != nil {
 		return nil, fmt.Errorf("init refs: %w", err)
 	}
 
-	db := database.New(fs, gitPath)
+	db, err := database.New(fs, gitPath)
+	if err != nil {
+		return nil, fmt.Errorf("init database: %w", err)
+	}
 
 	return &Repository{
 		FS:          fs,
 		Workspace:   workspace.New(cwd, fs),
 		Database:    db,
-		Indexer:     index.NewIndexer(fs, writer, filesystem.NewFileLocker(fs), db, gitPath, cwd),
+		Indexer:     index.NewIndexer(fs, writer, locker, db, gitPath, cwd),
 		Clock:       clock,
 		Refs:        refs,
 		Config:      cfg,
@@ -100,6 +108,7 @@ func (r *Repository) Init() error {
 		}
 	}
 
+	// TODO: Parse default branch from config
 	if err := r.Refs.InitRef("ref: refs/heads/master"); err != nil {
 		return fmt.Errorf("init ref: %w", err)
 	}
