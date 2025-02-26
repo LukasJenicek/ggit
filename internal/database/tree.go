@@ -27,6 +27,13 @@ func NewTree(parent *Tree, name string) *Tree {
 	}
 }
 
+func NewRootTree() *Tree {
+	return &Tree{
+		parent: nil,
+		name:   "",
+	}
+}
+
 func (t *Tree) AddEntry(entry Object) {
 	t.entries = append(t.entries, entry)
 }
