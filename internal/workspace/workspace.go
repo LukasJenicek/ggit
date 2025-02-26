@@ -23,10 +23,6 @@ func New(rootDir string, fs filesystem.Fs) *Workspace {
 	}
 }
 
-type File struct {
-	Path string
-}
-
 func (w Workspace) ListFiles(matchPath string) ([]string, error) {
 	// TODO: load more ignored files from config
 	ignore := []string{".", "..", ".git"}
