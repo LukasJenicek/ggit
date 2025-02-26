@@ -16,6 +16,7 @@ type Refs struct {
 	fileWriter *filesystem.AtomicFileWriter
 
 	headFilePath string
+	gitDir       string
 }
 
 func NewRefs(
@@ -39,7 +40,20 @@ func NewRefs(
 		fs:           fs,
 		headFilePath: filepath.Join(gitDir, "HEAD"),
 		fileWriter:   fileWriter,
+		gitDir:       gitDir,
 	}, nil
+}
+
+func (r *Refs) InitRef(ref string) error {
+	if ref == "" {
+		return errors.New("ref is empty")
+	}
+
+	if err := r.fileWriter.Write(r.headFilePath, []byte(ref)); err != nil {
+		return fmt.Errorf("update : %w", err)
+	}
+
+	return nil
 }
 
 func (r *Refs) UpdateHead(commitID string) error {
@@ -47,7 +61,14 @@ func (r *Refs) UpdateHead(commitID string) error {
 		return errors.New("commit id is empty")
 	}
 
-	if err := r.fileWriter.Write(r.headFilePath, []byte(commitID)); err != nil {
+	currentRef, err := r.parseCurrentRef()
+	if err != nil {
+		return fmt.Errorf("parse current ref: %w", err)
+	}
+
+	refPath := filepath.Join(r.gitDir, "refs", "heads", currentRef)
+
+	if err := r.fileWriter.Write(refPath, []byte(commitID)); err != nil {
 		return fmt.Errorf("update : %w", err)
 	}
 
@@ -55,7 +76,14 @@ func (r *Refs) UpdateHead(commitID string) error {
 }
 
 func (r *Refs) Current() (string, error) {
-	open, err := r.fs.Open(r.headFilePath)
+	currentRef, err := r.parseCurrentRef()
+	if err != nil {
+		return "", fmt.Errorf("parse current ref: %w", err)
+	}
+
+	refPath := filepath.Join(r.gitDir, "refs", "heads", currentRef)
+
+	refFile, err := r.fs.Open(refPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return "", nil
@@ -64,10 +92,19 @@ func (r *Refs) Current() (string, error) {
 		}
 	}
 
-	currentCID, err := io.ReadAll(open)
+	currentCID, err := io.ReadAll(refFile)
 	if err != nil {
 		return "", fmt.Errorf("read from HEAD file: %w", err)
 	}
 
 	return strings.TrimSpace(string(currentCID)), nil
+}
+
+func (r *Refs) parseCurrentRef() (string, error) {
+	refs, err := r.fs.ReadFile(r.headFilePath)
+	if err != nil {
+		return "", fmt.Errorf("read refs: %w", err)
+	}
+
+	return strings.Replace(string(refs), "ref: refs/heads/", "", 1), nil
 }
