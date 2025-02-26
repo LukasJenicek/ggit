@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/LukasJenicek/ggit/internal/database"
@@ -22,6 +23,7 @@ type Indexer struct {
 	fs         filesystem.Fs
 	fileWriter *filesystem.AtomicFileWriter
 	database   *database.Database
+	locker     filesystem.Locker
 
 	indexFilePath string
 	rootDir       string
@@ -30,6 +32,7 @@ type Indexer struct {
 func NewIndexer(
 	fs filesystem.Fs,
 	fileWriter *filesystem.AtomicFileWriter,
+	locker filesystem.Locker,
 	database *database.Database,
 	gitPath string,
 	rootDir string,
@@ -38,6 +41,7 @@ func NewIndexer(
 		fs:         fs,
 		fileWriter: fileWriter,
 		database:   database,
+		locker:     locker,
 
 		indexFilePath: gitPath + "/index",
 		rootDir:       rootDir,
@@ -59,6 +63,57 @@ func (idx *Indexer) Add(files ds.Set[string]) error {
 	}
 
 	return nil
+}
+
+func (idx *Indexer) LoadIndex() ([]*Entry, error) {
+	lock, err := idx.locker.Lock(idx.indexFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("lock index: %w", err)
+	}
+
+	defer func() {
+		err = idx.locker.Unlock(lock)
+	}()
+
+	indexFile, err := idx.fs.Open(idx.indexFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("open index file %q: %w", idx.indexFilePath, err)
+	}
+
+	content, err := io.ReadAll(indexFile)
+	if err != nil {
+		return nil, fmt.Errorf("read index file: %w", err)
+	}
+
+	entryLen := binary.BigEndian.Uint32(content[8:12])
+
+	entries := make([]*Entry, 0, entryLen)
+	currPosition := 12
+	for i := uint32(0); i < entryLen; i++ {
+		pathLen := binary.BigEndian.Uint16(content[currPosition+60 : currPosition+62])
+		cursorPos := currPosition + 62
+
+		if pathLen < maxPathSize {
+			cursorPos += int(pathLen)
+		} else {
+			pathLen = 0
+			for content[cursorPos] != 0 {
+				cursorPos++
+				pathLen++
+			}
+		}
+
+		entries = append(entries, NewEntryFromBytes(content[currPosition:currPosition], int(pathLen)))
+
+		// finding last null byte of entry
+		for (content[cursorPos-1]) != 0 {
+			cursorPos++
+		}
+
+		currPosition = cursorPos
+	}
+
+	return entries, err
 }
 
 func (idx *Indexer) indexContent(files ds.Set[string]) ([]byte, error) {

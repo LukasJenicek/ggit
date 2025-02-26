@@ -20,11 +20,13 @@ type Entry struct {
 	mode  int32
 	uid   uint32
 	gid   uint32
-	// length of relative file path
+	// size of file
 	fileSize int32
-	oid      []byte
-	flags    int16
-	path     []byte
+	// 20 bytes
+	oid []byte
+	// length of filename
+	flags int16
+	path  []byte
 }
 
 func (e *Entry) Content() ([]byte, error) {
@@ -62,6 +64,24 @@ func (e *Entry) Content() ([]byte, error) {
 	}
 
 	return buf.Bytes(), nil
+}
+
+func NewEntryFromBytes(data []byte, pathLen int) *Entry {
+	return &Entry{
+		ctime:     int32(binary.BigEndian.Uint32(data[0:4])),
+		ctimeNsec: int32(binary.BigEndian.Uint32(data[4:8])),
+		mtime:     int32(binary.BigEndian.Uint32(data[8:12])),
+		mtimeNsec: int32(binary.BigEndian.Uint32(data[12:16])),
+		dev:       int32(binary.BigEndian.Uint32(data[16:20])),
+		inode:     int32(binary.BigEndian.Uint32(data[20:24])),
+		mode:      int32(binary.BigEndian.Uint32(data[24:28])),
+		uid:       binary.BigEndian.Uint32(data[28:32]),
+		gid:       binary.BigEndian.Uint32(data[32:36]),
+		fileSize:  int32(binary.BigEndian.Uint32(data[36:40])),
+		oid:       data[40:60],
+		flags:     int16(binary.BigEndian.Uint16(data[60:62])),
+		path:      data[62 : 62+pathLen],
+	}
 }
 
 // NewEntry

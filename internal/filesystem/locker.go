@@ -15,8 +15,8 @@ type Locker interface {
 }
 
 type LockFile struct {
-	path string
-	file File
+	Path string
+	File File
 }
 
 type FileLocker struct {
@@ -28,12 +28,12 @@ func NewFileLocker(fs Fs) *FileLocker {
 }
 
 func (f *FileLocker) Lock(path string) (*LockFile, error) {
-	lockFilePath, err := lockFilePath(path)
+	lockPath, err := lockFilePath(path)
 	if err != nil {
-		return nil, fmt.Errorf("lock file path: %w", err)
+		return nil, fmt.Errorf("lock File Path: %w", err)
 	}
 
-	info, err := f.fs.Stat(lockFilePath)
+	info, err := f.fs.Stat(lockPath)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return nil, fmt.Errorf("get lock file info: %w", err)
@@ -41,32 +41,27 @@ func (f *FileLocker) Lock(path string) (*LockFile, error) {
 	}
 
 	if info != nil {
-		file, err := f.fs.OpenFile(lockFilePath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0o644)
+		file, err := f.fs.OpenFile(lockPath, os.O_RDWR|os.O_EXCL, 0o644)
 		if err != nil {
 			return nil, fmt.Errorf("open lock file: %w", err)
 		}
 
-		return &LockFile{file: file, path: lockFilePath}, ErrLockAcquired
+		return &LockFile{File: file, Path: lockPath}, ErrLockAcquired
 	}
 
-	lockFile, err := f.fs.OpenFile(lockFilePath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0o644)
+	lockFile, err := f.fs.OpenFile(lockPath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0o644)
 	if err != nil {
-		return nil, fmt.Errorf("create lock file %q: %w", lockFilePath, err)
+		return nil, fmt.Errorf("create lock file %q: %w", lockPath, err)
 	}
 
-	return &LockFile{file: lockFile, path: lockFilePath}, nil
+	return &LockFile{File: lockFile, Path: lockPath}, nil
 }
 
 func (f *FileLocker) Unlock(lock *LockFile) error {
-	defer lock.file.Close()
+	fmt.Println("trying to remove", lock.Path)
 
-	lockFilePath, err := lockFilePath(lock.path)
-	if err != nil {
-		return fmt.Errorf("lock file path: %w", err)
-	}
-
-	if err = f.fs.Remove(lockFilePath); err != nil {
-		return fmt.Errorf("remove lock file %q: %w", lockFilePath, err)
+	if err := f.fs.Remove(lock.Path); err != nil {
+		return fmt.Errorf("remove lock file %q: %w", lock.Path, err)
 	}
 
 	return nil
@@ -75,7 +70,7 @@ func (f *FileLocker) Unlock(lock *LockFile) error {
 func lockFilePath(path string) (string, error) {
 	cleanPath, err := filepath.Abs(path)
 	if err != nil {
-		return "", fmt.Errorf("resolve absolute path: %w", err)
+		return "", fmt.Errorf("resolve absolute Path: %w", err)
 	}
 
 	return cleanPath + ".lock", nil

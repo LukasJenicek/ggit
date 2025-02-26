@@ -1,12 +1,7 @@
 package repository
 
 import (
-	"encoding/hex"
 	"fmt"
-	"os"
-	"path/filepath"
-	"time"
-
 	"github.com/LukasJenicek/ggit/internal/clock"
 	"github.com/LukasJenicek/ggit/internal/config"
 	"github.com/LukasJenicek/ggit/internal/database"
@@ -14,6 +9,8 @@ import (
 	"github.com/LukasJenicek/ggit/internal/ds"
 	"github.com/LukasJenicek/ggit/internal/filesystem"
 	"github.com/LukasJenicek/ggit/internal/workspace"
+	"os"
+	"path/filepath"
 )
 
 // Repository
@@ -69,7 +66,7 @@ func New(fs filesystem.Fs, clock clock.Clock, cwd string) (*Repository, error) {
 		FS:          fs,
 		Workspace:   workspace.New(cwd, fs),
 		Database:    db,
-		Indexer:     index.NewIndexer(fs, writer, db, gitPath, cwd),
+		Indexer:     index.NewIndexer(fs, writer, filesystem.NewFileLocker(fs), db, gitPath, cwd),
 		Clock:       clock,
 		Refs:        refs,
 		Config:      cfg,
@@ -134,51 +131,60 @@ func (r *Repository) Add(paths []string) error {
 }
 
 func (r *Repository) Commit() (string, error) {
-	files, err := r.Workspace.ListFiles(".")
+	files, err := r.Indexer.LoadIndex()
 	if err != nil {
-		return "", fmt.Errorf("list files: %w", err)
+		return "", fmt.Errorf("load index: %w", err)
 	}
 
-	entries, err := r.Database.SaveBlobs(ds.NewSet(files))
-	if err != nil {
-		return "", fmt.Errorf("save blobs: %w", err)
-	}
+	fmt.Println(files)
 
-	root, err := database.Build(database.NewTree(nil, ""), entries)
-	if err != nil {
-		return "", fmt.Errorf("build tree: %w", err)
-	}
+	return "", nil
 
-	rootID, err := r.Database.StoreTree(root)
-	if err != nil {
-		return "", fmt.Errorf("store tree structure: %w", err)
-	}
-
-	now := time.Now()
-	author := database.NewAuthor(r.Config.User.Email, r.Config.User.Name, &now)
-
-	// TODO: read from file or cmd argument
-	commitMessage := "all"
-
-	headCommit, err := r.Refs.Current()
-	if err != nil {
-		return "", fmt.Errorf("get current commit: %w", err)
-	}
-
-	c, err := database.NewCommit(hex.EncodeToString(rootID), author, commitMessage, headCommit)
-	if err != nil {
-		return "", fmt.Errorf("create commit: %w", err)
-	}
-
-	commitID, err := r.Database.Store(c)
-	if err != nil {
-		return "", fmt.Errorf("store commit: %w", err)
-	}
-
-	cID := hex.EncodeToString(commitID)
-	if err = r.Refs.UpdateHead(cID); err != nil {
-		return "", fmt.Errorf("update head: %w", err)
-	}
-
-	return cID, nil
+	//files, err := r.Workspace.ListFiles(".")
+	//if err != nil {
+	//	return "", fmt.Errorf("list files: %w", err)
+	//}
+	//
+	//entries, err := r.Database.SaveBlobs(ds.NewSet(files))
+	//if err != nil {
+	//	return "", fmt.Errorf("save blobs: %w", err)
+	//}
+	//
+	//root, err := database.Build(database.NewTree(nil, ""), entries)
+	//if err != nil {
+	//	return "", fmt.Errorf("build tree: %w", err)
+	//}
+	//
+	//rootID, err := r.Database.StoreTree(root)
+	//if err != nil {
+	//	return "", fmt.Errorf("store tree structure: %w", err)
+	//}
+	//
+	//now := time.Now()
+	//author := database.NewAuthor(r.Config.User.Email, r.Config.User.Name, &now)
+	//
+	//// TODO: read from file or cmd argument
+	//commitMessage := "all"
+	//
+	//headCommit, err := r.Refs.Current()
+	//if err != nil {
+	//	return "", fmt.Errorf("get current commit: %w", err)
+	//}
+	//
+	//c, err := database.NewCommit(hex.EncodeToString(rootID), author, commitMessage, headCommit)
+	//if err != nil {
+	//	return "", fmt.Errorf("create commit: %w", err)
+	//}
+	//
+	//commitID, err := r.Database.Store(c)
+	//if err != nil {
+	//	return "", fmt.Errorf("store commit: %w", err)
+	//}
+	//
+	//cID := hex.EncodeToString(commitID)
+	//if err = r.Refs.UpdateHead(cID); err != nil {
+	//	return "", fmt.Errorf("update head: %w", err)
+	//}
+	//
+	//return cID, nil
 }

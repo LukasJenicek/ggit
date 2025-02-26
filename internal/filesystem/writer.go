@@ -1,44 +1,36 @@
 package filesystem
 
 import (
-	"errors"
 	"fmt"
+	"os"
 )
 
 type AtomicFileWriter struct {
-	fs     Fs
-	locker Locker
+	fs Fs
 }
 
 func NewAtomicFileWriter(fs Fs) *AtomicFileWriter {
-	return &AtomicFileWriter{fs: fs, locker: NewFileLocker(fs)}
+	return &AtomicFileWriter{fs: fs}
 }
 
 func (a *AtomicFileWriter) Write(path string, content []byte) error {
-	lock, err := a.locker.Lock(path)
+	tmpFilePath := path + ".tmp"
+
+	f, err := a.fs.OpenFile(tmpFilePath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0o644)
 	if err != nil {
-		if errors.Is(err, ErrLockAcquired) {
-			// TODO: either err out or remove lock based on `modification time` ?
-			// do something
-		} else {
-			return fmt.Errorf("lock file %q: %w", path, err)
-		}
+		return fmt.Errorf("open tmp file %q: %w", tmpFilePath, err)
 	}
 
-	defer func() {
-		err = a.locker.Unlock(lock)
-	}()
-
-	if _, err = lock.file.Write(content); err != nil {
-		return fmt.Errorf("write to lock file %q: %w", lock.path, err)
+	if _, err := f.Write(content); err != nil {
+		return fmt.Errorf("write to tmp file %q: %w", tmpFilePath, err)
 	}
 
-	if err = lock.file.Sync(); err != nil {
-		return fmt.Errorf("sync lock file %q: %w", lock.path, err)
+	if err = f.Sync(); err != nil {
+		return fmt.Errorf("sync lock file %q: %w", tmpFilePath, err)
 	}
 
-	if err = a.fs.Rename(lock.path, path); err != nil {
-		return fmt.Errorf("rename lock file %s => %s: %w", lock.path, path, err)
+	if err = a.fs.Rename(tmpFilePath, path); err != nil {
+		return fmt.Errorf("rename lock file %s => %s: %w", tmpFilePath, path, err)
 	}
 
 	return nil

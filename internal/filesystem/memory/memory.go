@@ -19,6 +19,7 @@ type Fs struct {
 type MockFile struct {
 	content  strings.Builder
 	isClosed bool
+	offset   int
 }
 
 //nolint:wrapcheck
@@ -28,6 +29,17 @@ func (m *MockFile) Write(b []byte) (int, error) {
 	}
 
 	return m.content.Write(b)
+}
+
+func (m *MockFile) Read(b []byte) (int, error) {
+	if m.offset >= len(m.content.String()) {
+		return 0, io.EOF
+	}
+
+	n := copy(b, m.content.String()[m.offset:])
+	m.offset += n
+
+	return n, nil
 }
 
 func (m *MockFile) Sync() error {
