@@ -40,18 +40,24 @@ func TestNew(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		refs, err := database.NewRefs(fs, gitPath, filesystem.NewAtomicFileWriter(fs))
+		locker := filesystem.NewFileLocker(fs)
+
+		writer, err := filesystem.NewAtomicFileWriter(fs, locker)
+		require.NoError(t, err)
+
+		refs, err := database.NewRefs(fs, gitPath, writer)
 		require.NoError(t, err)
 
 		require.NotNil(t, repo)
 
-		d := database.New(fs, gitPath)
+		d, err := database.New(fs, gitPath)
+		require.NoError(t, err)
 
 		require.EqualValues(t, &repository.Repository{
 			FS:        fs,
 			Workspace: workspace.New(cwd, fs),
 			Database:  d,
-			Indexer:   index.NewIndexer(fs, filesystem.NewAtomicFileWriter(fs), filesystem.NewFileLocker(fs), d, gitPath, cwd),
+			Indexer:   index.NewIndexer(fs, writer, locker, d, gitPath, cwd),
 			Clock:     fakeClock,
 			Refs:      refs,
 			Config: &config.Config{
@@ -78,12 +84,18 @@ func TestNew(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, repo)
 
-		writer := filesystem.NewAtomicFileWriter(fs)
+		locker := filesystem.NewFileLocker(fs)
+
+		writer, err := filesystem.NewAtomicFileWriter(fs, locker)
+		require.NoError(t, err)
 
 		refs, err := database.NewRefs(fs, gitPath, writer)
 		require.NoError(t, err)
 
-		db := database.New(fs, gitPath)
+		require.NotNil(t, repo)
+
+		db, err := database.New(fs, gitPath)
+		require.NoError(t, err)
 
 		require.EqualValues(t, &repository.Repository{
 			FS:        fs,
