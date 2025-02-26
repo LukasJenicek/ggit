@@ -50,7 +50,7 @@ func (r *Refs) InitRef(ref string) error {
 	}
 
 	if err := r.fileWriter.Write(r.headFilePath, []byte(ref)); err != nil {
-		return fmt.Errorf("update : %w", err)
+		return fmt.Errorf("write init ref : %w", err)
 	}
 
 	return nil
@@ -100,6 +100,7 @@ func (r *Refs) Current() (string, error) {
 	return strings.TrimSpace(string(currentCID)), nil
 }
 
+// TODO: parseCurrentRef() unconditionally replaces "ref: refs/heads/" with an empty string, which assumes HEAD is always a symbolic reference.
 func (r *Refs) parseCurrentRef() (string, error) {
 	refs, err := r.fs.ReadFile(r.headFilePath)
 	if err != nil {
