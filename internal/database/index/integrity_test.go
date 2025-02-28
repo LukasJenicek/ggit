@@ -3,12 +3,16 @@ package index_test
 import (
 	"encoding/binary"
 	"encoding/hex"
-	"github.com/LukasJenicek/ggit/internal/database/index"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
+
+	"github.com/LukasJenicek/ggit/internal/database/index"
 )
 
 func TestCheckIndexIntegrity(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name        string
 		content     []byte
@@ -38,6 +42,7 @@ func TestCheckIndexIntegrity(t *testing.T) {
 				content := append([]byte("DIRC"), make([]byte, 8)...)
 				// Version 1 instead of 2
 				binary.BigEndian.PutUint32(content[4:8], 1)
+
 				return content
 			}(),
 			expectError: true,
@@ -51,6 +56,7 @@ func TestCheckIndexIntegrity(t *testing.T) {
 				binary.BigEndian.PutUint32(content[4:8], 2)
 				content = append(content, []byte("some content")...)
 				checksum, _ := hex.DecodeString("0000000000000000000000000000000000000000")
+
 				return append(content, checksum...)
 			}(),
 			expectError: true,
@@ -64,6 +70,10 @@ func TestCheckIndexIntegrity(t *testing.T) {
 
 			if tt.expectError {
 				require.Error(t, err)
+
+				if tt.errorMsg != "" {
+					require.Contains(t, err.Error(), tt.errorMsg)
+				}
 			} else {
 				require.NoError(t, err)
 			}
