@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"os"
+	"syscall"
 	"testing"
 	"testing/fstest"
 	"time"
@@ -162,7 +163,6 @@ func TestInit(t *testing.T) {
 }
 
 func TestRepository_Commit(t *testing.T) {
-	t.Skip()
 	t.Parallel()
 
 	cwd := "tmp/test"
@@ -170,9 +170,57 @@ func TestRepository_Commit(t *testing.T) {
 	fs := memory.New(fstest.MapFS{
 		"tmp/test/hello.txt": &fstest.MapFile{
 			Data: []byte("hello"),
+			Sys: &syscall.Stat_t{
+				Dev:     66306,
+				Ino:     26874043,
+				Nlink:   1,
+				Mode:    33204,
+				Uid:     1000,
+				Gid:     1000,
+				X__pad0: 0,
+				Rdev:    0,
+				Size:    7,
+				Blksize: 4096,
+				Blocks:  8,
+				Atim: syscall.Timespec{
+					Sec:  1740497047,
+					Nsec: 592315384,
+				},
+				Mtim: syscall.Timespec{
+					Sec:  1739287401,
+					Nsec: 888108884,
+				},
+				Ctim: syscall.Timespec{
+					Sec:  1739287401,
+					Nsec: 888108884,
+				},
+			},
 		},
 		"tmp/test/world.txt": &fstest.MapFile{
 			Data: []byte("world"),
+			Sys: &syscall.Stat_t{
+				Dev:     66306,
+				Ino:     26874043,
+				Nlink:   1,
+				Mode:    33204,
+				Uid:     1000,
+				Gid:     1000,
+				Size:    6,
+				Blksize: 4096,
+				Blocks:  8,
+				Atim: syscall.Timespec{
+					Sec:  1740497047,
+					Nsec: 592315384,
+				},
+				Mtim: syscall.Timespec{
+					Sec:  1739287401,
+					Nsec: 888108884,
+				},
+				Ctim: syscall.Timespec{
+					Sec:  1739287401,
+					Nsec: 888108884,
+				},
+			},
 		},
 	})
 
@@ -183,6 +231,12 @@ func TestRepository_Commit(t *testing.T) {
 		clock.NewFakeClock(now),
 		cwd,
 	)
+	require.NoError(t, err)
+
+	err = repo.Init()
+	require.NoError(t, err)
+
+	err = repo.Add([]string{"hello.txt", "world.txt"})
 	require.NoError(t, err)
 
 	_, err = repo.Commit()
