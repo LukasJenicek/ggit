@@ -18,6 +18,7 @@ type Fs struct {
 
 type MockFile struct {
 	content  strings.Builder
+	file     *fstest.MapFile
 	isClosed bool
 	offset   int
 }
@@ -28,7 +29,14 @@ func (m *MockFile) Write(b []byte) (int, error) {
 		return 0, errors.New("write to closed file")
 	}
 
-	return m.content.Write(b)
+	n, err := m.content.Write(b)
+	if err != nil {
+		return 0, fmt.Errorf("write: %w", err)
+	}
+
+	m.file.Data = b
+
+	return n, nil
 }
 
 func (m *MockFile) Read(b []byte) (int, error) {
@@ -87,6 +95,7 @@ func (f *Fs) OpenFile(name string, flag int, perm os.FileMode) (filesystem.File,
 	return &MockFile{
 		content:  strings.Builder{},
 		isClosed: false,
+		file:     f.fsys[name],
 	}, nil
 }
 
@@ -118,21 +127,15 @@ func (f *Fs) WriteFile(name string, data []byte, perm os.FileMode) error {
 	return nil
 }
 
-func (f *Fs) Rename(oldpath, newpath string) error {
-	file, ok := f.fsys[oldpath]
+func (f *Fs) Rename(oldPath, newPath string) error {
+	file, ok := f.fsys[oldPath]
 	if !ok {
 		return os.ErrNotExist
 	}
 
-	// errors out when the file with the same name already exist
-	_, ok = f.fsys[newpath]
-	if ok {
-		return os.ErrExist
-	}
+	delete(f.fsys, oldPath)
 
-	delete(f.fsys, oldpath)
-
-	f.fsys[newpath] = file
+	f.fsys[newPath] = file
 
 	return nil
 }
