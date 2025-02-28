@@ -136,7 +136,7 @@ func (idx *Indexer) LoadIndex() ([]*Entry, error) {
 	entries := make([]*Entry, 0, entryLen)
 
 	currPosition := 12
-	for range entryLen {
+	for i := uint32(0); i < entryLen; i++ {
 		pathLen := binary.BigEndian.Uint16(content[currPosition+60 : currPosition+62])
 		cursorPos := currPosition + 62
 
