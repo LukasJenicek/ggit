@@ -23,7 +23,6 @@ type MockFile struct {
 	offset   int
 }
 
-//nolint:wrapcheck
 func (m *MockFile) Write(b []byte) (int, error) {
 	if m.isClosed {
 		return 0, errors.New("write to closed file")

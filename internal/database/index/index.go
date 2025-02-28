@@ -100,7 +100,8 @@ func (idx *Indexer) Add(files []string) error {
 	return nil
 }
 
-// TODO: What to do when no files are added
+// TODO: Determine handling strategy when no files are added to the index.
+// Options: return error, create empty index, or maintain current behavior.
 func (idx *Indexer) LoadIndex() ([]*Entry, error) {
 	lock, err := idx.locker.Lock(idx.indexFilePath)
 	if err != nil {
@@ -132,8 +133,9 @@ func (idx *Indexer) LoadIndex() ([]*Entry, error) {
 
 	entryLen := binary.BigEndian.Uint32(content[8:12])
 	entries := make([]*Entry, 0, entryLen)
+
 	currPosition := 12
-	for i := uint32(0); i < entryLen; i++ {
+	for range uint32(entryLen) {
 		pathLen := binary.BigEndian.Uint16(content[currPosition+60 : currPosition+62])
 		cursorPos := currPosition + 62
 
