@@ -1,7 +1,6 @@
 package index
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -12,7 +11,6 @@ import (
 	"github.com/LukasJenicek/ggit/internal/database"
 	"github.com/LukasJenicek/ggit/internal/ds"
 	"github.com/LukasJenicek/ggit/internal/filesystem"
-	"github.com/LukasJenicek/ggit/internal/hasher"
 )
 
 const (
@@ -26,6 +24,7 @@ type Indexer struct {
 	fileWriter *filesystem.AtomicFileWriter
 	database   *database.Database
 	locker     filesystem.Locker
+	content    *Content
 
 	indexFilePath string
 	rootDir       string
@@ -68,18 +67,22 @@ func NewIndexer(
 		fileWriter: fileWriter,
 		database:   database,
 		locker:     locker,
-
+		content: &Content{
+			database: database,
+			fs:       fs,
+			rootDir:  rootDir,
+		},
 		indexFilePath: filepath.Join(gitPath, "index"),
 		rootDir:       rootDir,
 	}, nil
 }
 
-func (idx *Indexer) Add(files []string) error {
-	if err := idx.createIndexFile(); err != nil {
+func (i *Indexer) Add(files []string) error {
+	if err := i.createIndexFile(); err != nil {
 		return fmt.Errorf("create index file: %w", err)
 	}
 
-	entries, err := idx.LoadIndex()
+	entries, err := i.LoadIndex()
 	if err != nil {
 		return fmt.Errorf("load index: %w", err)
 	}
@@ -88,12 +91,12 @@ func (idx *Indexer) Add(files []string) error {
 		files = append(files, string(e.Path))
 	}
 
-	indexContent, err := idx.indexContent(ds.NewSet(files))
+	indexContent, err := i.content.Generate(ds.NewSet(files))
 	if err != nil {
 		return fmt.Errorf("index content: %w", err)
 	}
 
-	if err = idx.fileWriter.Write(idx.indexFilePath, indexContent); err != nil {
+	if err = i.fileWriter.Write(i.indexFilePath, indexContent); err != nil {
 		return fmt.Errorf("update index file: %w", err)
 	}
 
@@ -102,22 +105,22 @@ func (idx *Indexer) Add(files []string) error {
 
 // TODO: Determine handling strategy when no files are added to the index.
 // Options: return error, create empty index, or maintain current behavior.
-func (idx *Indexer) LoadIndex() ([]*Entry, error) {
-	lock, err := idx.locker.Lock(idx.indexFilePath)
+func (i *Indexer) LoadIndex() ([]*Entry, error) {
+	lock, err := i.locker.Lock(i.indexFilePath)
 	if err != nil {
 		return nil, fmt.Errorf("lock index: %w", err)
 	}
 
 	defer func() {
-		err = idx.locker.Unlock(lock)
+		err = i.locker.Unlock(lock)
 		if err != nil {
 			// TODO: log error ??
 		}
 	}()
 
-	indexFile, err := idx.fs.Open(idx.indexFilePath)
+	indexFile, err := i.fs.Open(i.indexFilePath)
 	if err != nil {
-		return nil, fmt.Errorf("open index file %q: %w", idx.indexFilePath, err)
+		return nil, fmt.Errorf("open index file %q: %w", i.indexFilePath, err)
 	}
 
 	content, err := io.ReadAll(indexFile)
@@ -168,89 +171,16 @@ func (idx *Indexer) LoadIndex() ([]*Entry, error) {
 	return entries, nil
 }
 
-func (idx *Indexer) indexContent(files ds.Set[string]) ([]byte, error) {
-	indexContent := bytes.NewBuffer(nil)
-
-	entriesLen := files.Size()
-	if err := idx.writeHeader(indexContent, entriesLen); err != nil {
-		return nil, fmt.Errorf("add: %w", err)
-	}
-
-	entries, err := idx.database.SaveBlobs(files)
-	if err != nil {
-		return nil, fmt.Errorf("save blobs: %w", err)
-	}
-
-	indexEntries := make([]*Entry, len(entries))
-
-	for i, e := range entries {
-		fInfo, err := idx.fs.Stat(e.Filepath)
-		if err != nil {
-			return nil, fmt.Errorf("stat %s: %w", e.Filepath, err)
-		}
-
-		indexEntry, err := NewEntry(e.GetRelativeFilePath(idx.rootDir), fInfo, e.OID)
-		if err != nil {
-			return nil, fmt.Errorf("new index entry: %w", err)
-		}
-
-		indexEntries[i] = indexEntry
-	}
-
-	for _, indexEntry := range indexEntries {
-		content, err := indexEntry.Content()
-		if err != nil {
-			return nil, fmt.Errorf("index entry content: %w", err)
-		}
-
-		if err = binary.Write(indexContent, binary.BigEndian, content); err != nil {
-			return nil, fmt.Errorf("write index entry: %w", err)
-		}
-	}
-
-	oid, err := hasher.SHA1HashContent(indexContent.Bytes())
-	if err != nil {
-		return nil, fmt.Errorf("hash index: %w", err)
-	}
-
-	if err = binary.Write(indexContent, binary.BigEndian, oid); err != nil {
-		return nil, fmt.Errorf("write index entry: %w", err)
-	}
-
-	return indexContent.Bytes(), nil
-}
-
-// 12-byte header.
-func (idx *Indexer) writeHeader(indexContent *bytes.Buffer, entriesLen int) error {
-	header := []any{
-		[4]byte{'D', 'I', 'R', 'C'}, // stands for dir cache
-		[4]byte{0, 0, 0, 2},         // version
-	}
-
-	entries := make([]byte, 4)
-	//nolint:gosec
-	binary.BigEndian.PutUint32(entries, uint32(entriesLen))
-	header = append(header, entries)
-
-	for _, h := range header {
-		if err := binary.Write(indexContent, binary.BigEndian, h); err != nil {
-			return fmt.Errorf("write header: %w", err)
-		}
-	}
-
-	return nil
-}
-
 // create .git/index file if does not exist.
-func (idx *Indexer) createIndexFile() error {
-	_, err := idx.fs.Stat(idx.indexFilePath)
+func (i *Indexer) createIndexFile() error {
+	_, err := i.fs.Stat(i.indexFilePath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			if _, err := idx.fs.Create(idx.indexFilePath); err != nil {
+			if _, err := i.fs.Create(i.indexFilePath); err != nil {
 				return fmt.Errorf("create index file: %w", err)
 			}
 		} else {
-			return fmt.Errorf("stat %q: %w", idx.indexFilePath, err)
+			return fmt.Errorf("stat %q: %w", i.indexFilePath, err)
 		}
 	}
 
