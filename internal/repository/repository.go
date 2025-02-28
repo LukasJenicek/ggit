@@ -2,6 +2,7 @@ package repository
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -15,6 +16,8 @@ import (
 	"github.com/LukasJenicek/ggit/internal/filesystem"
 	"github.com/LukasJenicek/ggit/internal/workspace"
 )
+
+var ErrNoFilesToCommit = errors.New("nothing added to commit (use 'ggit add' to track)")
 
 // Repository
 // Cwd = Is relative folder where you run ggit commands.
@@ -155,6 +158,10 @@ func (r *Repository) Commit() (string, error) {
 	indexEntries, err := r.Indexer.LoadIndex()
 	if err != nil {
 		return "", fmt.Errorf("load index: %w", err)
+	}
+
+	if len(indexEntries) == 0 {
+		return "", ErrNoFilesToCommit
 	}
 
 	files := ds.NewSet([]string{})

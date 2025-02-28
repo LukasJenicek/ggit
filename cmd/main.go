@@ -46,6 +46,11 @@ func main() {
 	case "commit":
 		cID, err := repo.Commit()
 		if err != nil {
+			if errors.Is(err, repository.ErrNoFilesToCommit) {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+
 			log.Fatalf("commit: %v", err)
 		}
 
