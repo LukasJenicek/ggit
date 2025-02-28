@@ -100,6 +100,7 @@ func (idx *Indexer) Add(files []string) error {
 	return nil
 }
 
+// TODO: What to do when no files are added
 func (idx *Indexer) LoadIndex() ([]*Entry, error) {
 	lock, err := idx.locker.Lock(idx.indexFilePath)
 	if err != nil {
@@ -123,18 +124,14 @@ func (idx *Indexer) LoadIndex() ([]*Entry, error) {
 		return nil, fmt.Errorf("read index file: %w", err)
 	}
 
-	if len(content) == 0 {
-		return nil, nil
-	}
-
-	if len(content) < 12 {
-		return nil, errors.New("invalid index file format: file too short")
+	if len(content) > 0 {
+		if err = CheckIndexIntegrity(content); err != nil {
+			return nil, fmt.Errorf("index integrity: %w", err)
+		}
 	}
 
 	entryLen := binary.BigEndian.Uint32(content[8:12])
-
 	entries := make([]*Entry, 0, entryLen)
-
 	currPosition := 12
 	for i := uint32(0); i < entryLen; i++ {
 		pathLen := binary.BigEndian.Uint16(content[currPosition+60 : currPosition+62])
