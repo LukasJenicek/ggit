@@ -86,11 +86,5 @@ func TestWorkspace_ListSpecificFile(t *testing.T) {
 		t.Errorf("list files: %s", err)
 	}
 
-	assert.EqualValues(
-		t,
-		[]string{
-			filepath.Join(testDataFolder, "a", "a.txt"),
-			filepath.Join(testDataFolder, "a.txt"),
-		}, files,
-	)
+	assert.EqualValues(t, []string{filepath.Join(testDataFolder, "a.txt")}, files)
 }

@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/LukasJenicek/ggit/internal/database"
 	"github.com/LukasJenicek/ggit/internal/ds"
@@ -82,16 +83,33 @@ func (i *Indexer) Add(files []string) error {
 		return fmt.Errorf("create index file: %w", err)
 	}
 
-	entries, err := i.LoadIndex()
+	indexEntries, err := i.LoadIndex()
 	if err != nil {
 		return fmt.Errorf("load index: %w", err)
 	}
 
-	for _, e := range entries {
-		files = append(files, string(e.Path))
+	entries, err := i.database.SaveBlobs(ds.NewSet(files))
+	if err != nil {
+		return fmt.Errorf("save blobs: %w", err)
 	}
 
-	indexContent, err := i.content.Generate(ds.NewSet(files))
+	for _, e := range entries {
+		fInfo, err := i.fs.Stat(e.Filepath)
+		if err != nil {
+			return fmt.Errorf("stat %s: %w", e.Filepath, err)
+		}
+
+		relativeFilePath := e.GetRelativeFilePath(i.rootDir)
+
+		indexEntry, err := NewEntry(relativeFilePath, fInfo, e.OID)
+		if err != nil {
+			return fmt.Errorf("new index entry: %w", err)
+		}
+
+		indexEntries[relativeFilePath] = indexEntry
+	}
+
+	indexContent, err := i.content.Generate(indexEntries.SortedValues())
 	if err != nil {
 		return fmt.Errorf("index content: %w", err)
 	}
@@ -103,9 +121,25 @@ func (i *Indexer) Add(files []string) error {
 	return nil
 }
 
+type Entries map[string]*Entry
+
+func (e *Entries) SortedValues() []*Entry {
+	entries := make([]*Entry, 0, len(*e))
+
+	for _, v := range *e {
+		entries = append(entries, v)
+	}
+
+	sort.Slice(entries, func(i, j int) bool {
+		return string(entries[i].Path) < string(entries[j].Path)
+	})
+
+	return entries
+}
+
 // TODO: Determine handling strategy when no files are added to the index.
 // Options: return error, create empty index, or maintain current behavior.
-func (i *Indexer) LoadIndex() ([]*Entry, error) {
+func (i *Indexer) LoadIndex() (Entries, error) {
 	lock, err := i.locker.Lock(i.indexFilePath)
 	if err != nil {
 		return nil, fmt.Errorf("lock index: %w", err)
@@ -135,10 +169,10 @@ func (i *Indexer) LoadIndex() ([]*Entry, error) {
 	}
 
 	entryLen := binary.BigEndian.Uint32(content[8:12])
-	entries := make([]*Entry, 0, entryLen)
+	entries := make(Entries, entryLen)
 
 	currPosition := 12
-	for range uint32(entryLen) {
+	for range entryLen {
 		pathLen := binary.BigEndian.Uint16(content[currPosition+60 : currPosition+62])
 		cursorPos := currPosition + 62
 
@@ -158,12 +192,14 @@ func (i *Indexer) LoadIndex() ([]*Entry, error) {
 			return nil, fmt.Errorf("create entry: %w", err)
 		}
 
-		entries = append(entries, entry)
-
+		entries[string(entry.Path)] = entry
+		cursorPos++
 		// finding last null byte of entry
-		for cursorPos > 0 && content[cursorPos-1] != 0 {
+		for cursorPos > 0 && content[cursorPos-1] == 0 {
 			cursorPos++
 		}
+
+		cursorPos--
 
 		currPosition = cursorPos
 	}

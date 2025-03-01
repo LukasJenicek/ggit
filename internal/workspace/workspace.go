@@ -39,7 +39,7 @@ func New(rootDir string, fs filesystem.Fs) (*Workspace, error) {
 	}, nil
 }
 
-func (w Workspace) ListFiles(matchPath string) ([]string, error) {
+func (w Workspace) ListFiles(patternMatch string) ([]string, error) {
 	// TODO: load more ignored files from config
 	ignore := []string{".", "..", ".git"}
 
@@ -69,13 +69,15 @@ func (w Workspace) ListFiles(matchPath string) ([]string, error) {
 			return errors.New("invalid file path, outside of the root directory")
 		}
 
-		if matchPath == "." {
+		if patternMatch == "." {
 			files = append(files, cleanPath)
+
+			return nil
 		}
 
-		match, err := filepath.Match(matchPath, d.Name())
+		match, err := filepath.Match(filepath.Join(w.rootDir, patternMatch), cleanPath)
 		if err != nil {
-			return fmt.Errorf("matching path %q with pattern %q: %w", cleanPath, matchPath, err)
+			return fmt.Errorf("matching path %q with pattern %q: %w", cleanPath, patternMatch, err)
 		}
 
 		if match {
@@ -89,7 +91,7 @@ func (w Workspace) ListFiles(matchPath string) ([]string, error) {
 	}
 
 	if len(files) == 0 {
-		return nil, &ErrPathNotMatched{Pattern: matchPath}
+		return nil, &ErrPathNotMatched{Pattern: patternMatch}
 	}
 
 	return files, nil

@@ -107,7 +107,7 @@ func Build(root *Tree, entries []*Entry) (*Tree, error) {
 	treeCache := make(map[string]*Tree)
 
 	for _, entry := range entries {
-		d := filepath.Dir(entry.Name)
+		d := filepath.Dir(entry.Filepath)
 		// root folder
 		if d == "." {
 			root.AddEntry(entry)

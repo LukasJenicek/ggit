@@ -3,7 +3,6 @@ package repository_test
 import (
 	"crypto/sha1"
 	"encoding/hex"
-	"github.com/LukasJenicek/ggit/internal/index"
 	"os"
 	"syscall"
 	"testing"
@@ -17,6 +16,7 @@ import (
 	"github.com/LukasJenicek/ggit/internal/database"
 	"github.com/LukasJenicek/ggit/internal/filesystem"
 	"github.com/LukasJenicek/ggit/internal/filesystem/memory"
+	"github.com/LukasJenicek/ggit/internal/index"
 	"github.com/LukasJenicek/ggit/internal/repository"
 	"github.com/LukasJenicek/ggit/internal/workspace"
 )

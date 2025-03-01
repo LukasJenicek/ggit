@@ -1,15 +1,15 @@
 package main
 
 import (
-	"errors"
+	"context"
 	"fmt"
 	"log"
 	"os"
 
 	"github.com/LukasJenicek/ggit/internal/clock"
+	"github.com/LukasJenicek/ggit/internal/command"
 	"github.com/LukasJenicek/ggit/internal/filesystem"
 	"github.com/LukasJenicek/ggit/internal/repository"
-	"github.com/LukasJenicek/ggit/internal/workspace"
 )
 
 func main() {
@@ -22,6 +22,8 @@ func main() {
 		log.Fatalf("cmd is required")
 	}
 
+	ctx := context.Background()
+
 	workingDirectory, err := os.Getwd()
 	if err != nil {
 		log.Fatalf("get current working directory: %v", err)
@@ -32,50 +34,14 @@ func main() {
 		log.Fatalf("init repository: %v", err)
 	}
 
-	switch cmd {
-	case "init":
-		if repo.Initialized {
-			log.Fatalf("ggit already initialized")
-		}
+	if cmd != "init" && !repo.Initialized {
+		fmt.Println("fatal: not a git repository (or any of the parent directories): .git")
+		os.Exit(128)
+	}
 
-		if err = repo.Init(); err != nil {
-			log.Fatalf("ggit init: %v", err)
-		}
-
-		fmt.Println("Initialized empty Git repository in", repo.GitPath)
-	case "commit":
-		cID, err := repo.Commit()
-		if err != nil {
-			if errors.Is(err, repository.ErrNoFilesToCommit) {
-				fmt.Println(err)
-				os.Exit(1)
-			}
-
-			log.Fatalf("commit: %v", err)
-		}
-
-		fmt.Printf("[%s] Successfully committed changes\n", cID)
-	case "add":
-		if len(os.Args) < 3 {
-			fmt.Printf("usage: %s add <pattern>\n", os.Args[0])
-			fmt.Println("Examples:")
-			fmt.Println("  Add single file: ggit add file.txt")
-			fmt.Println("  Add using glob pattern: ggit add \"*.go\"")
-
-			os.Exit(0)
-		}
-
-		err := repo.Add(os.Args[2:])
-		if err != nil {
-			var cErr *workspace.ErrPathNotMatched
-			if errors.As(err, &cErr) {
-				fmt.Println(cErr)
-				os.Exit(128)
-			}
-
-			log.Fatalf("add: %v", err)
-		}
-	default:
-		log.Fatalf("unknown command: %q", cmd)
+	runner := command.NewRunner(repo)
+	if osExit, err := runner.RunCmd(ctx, cmd, os.Args[2:], os.Stdout); err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(osExit)
 	}
 }
