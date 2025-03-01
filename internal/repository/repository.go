@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/LukasJenicek/ggit/internal/index"
 	"os"
 	"path/filepath"
 	"time"
@@ -12,8 +11,8 @@ import (
 	"github.com/LukasJenicek/ggit/internal/clock"
 	"github.com/LukasJenicek/ggit/internal/config"
 	"github.com/LukasJenicek/ggit/internal/database"
-	"github.com/LukasJenicek/ggit/internal/ds"
 	"github.com/LukasJenicek/ggit/internal/filesystem"
+	"github.com/LukasJenicek/ggit/internal/index"
 	"github.com/LukasJenicek/ggit/internal/workspace"
 )
 
@@ -165,14 +164,17 @@ func (r *Repository) Commit() (string, error) {
 		return "", ErrNoFilesToCommit
 	}
 
-	files := ds.NewSet([]string{})
-	for _, entry := range indexEntries {
-		files.Add(fmt.Sprintf("%s/%s", r.RootDir, string(entry.Path)))
-	}
+	entries := make([]*database.Entry, 0, len(indexEntries))
 
-	entries, err := r.Database.SaveBlobs(files)
-	if err != nil {
-		return "", fmt.Errorf("save blobs: %w", err)
+	for _, iEntry := range indexEntries.SortedValues() {
+		filePath := string(iEntry.Path)
+
+		entry, err := database.NewEntry(filepath.Base(filePath), filePath, iEntry.OID, false)
+		if err != nil {
+			return "", fmt.Errorf("create entry: %w", err)
+		}
+
+		entries = append(entries, entry)
 	}
 
 	root, err := database.Build(database.NewRootTree(), entries)

@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+
 	"github.com/LukasJenicek/ggit/internal/database"
-	"github.com/LukasJenicek/ggit/internal/ds"
 	"github.com/LukasJenicek/ggit/internal/filesystem"
 	"github.com/LukasJenicek/ggit/internal/hasher"
 )
@@ -17,56 +17,34 @@ type Content struct {
 	rootDir string
 }
 
-func (c *Content) Generate(files ds.Set[string]) ([]byte, error) {
-	indexContent := bytes.NewBuffer(nil)
+func (c *Content) Generate(entries []*Entry) ([]byte, error) {
+	content := bytes.NewBuffer(nil)
 
-	entriesLen := files.Size()
-	if err := c.writeHeader(indexContent, entriesLen); err != nil {
+	if err := c.writeHeader(content, len(entries)); err != nil {
 		return nil, fmt.Errorf("add: %w", err)
 	}
 
-	entries, err := c.database.SaveBlobs(files)
-	if err != nil {
-		return nil, fmt.Errorf("save blobs: %w", err)
-	}
-
-	indexEntries := make([]*Entry, len(entries))
-
-	for i, e := range entries {
-		fInfo, err := c.fs.Stat(e.Filepath)
-		if err != nil {
-			return nil, fmt.Errorf("stat %s: %w", e.Filepath, err)
-		}
-
-		indexEntry, err := NewEntry(e.GetRelativeFilePath(c.rootDir), fInfo, e.OID)
-		if err != nil {
-			return nil, fmt.Errorf("new index entry: %w", err)
-		}
-
-		indexEntries[i] = indexEntry
-	}
-
-	for _, indexEntry := range indexEntries {
-		content, err := indexEntry.Content()
+	for _, entry := range entries {
+		entryContent, err := entry.Content()
 		if err != nil {
 			return nil, fmt.Errorf("index entry content: %w", err)
 		}
 
-		if err = binary.Write(indexContent, binary.BigEndian, content); err != nil {
+		if err = binary.Write(content, binary.BigEndian, entryContent); err != nil {
 			return nil, fmt.Errorf("write index entry: %w", err)
 		}
 	}
 
-	oid, err := hasher.SHA1HashContent(indexContent.Bytes())
+	oid, err := hasher.SHA1HashContent(content.Bytes())
 	if err != nil {
 		return nil, fmt.Errorf("hash index: %w", err)
 	}
 
-	if err = binary.Write(indexContent, binary.BigEndian, oid); err != nil {
+	if err = binary.Write(content, binary.BigEndian, oid); err != nil {
 		return nil, fmt.Errorf("write index entry: %w", err)
 	}
 
-	return indexContent.Bytes(), nil
+	return content.Bytes(), nil
 }
 
 // 12-byte header.

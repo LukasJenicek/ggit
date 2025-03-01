@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"syscall"
 )
@@ -23,7 +24,7 @@ type Entry struct {
 	// size of file
 	fileSize uint32
 	// 20 bytes
-	oid []byte
+	OID []byte
 	// length of filename
 	flags uint16
 	Path  []byte
@@ -43,7 +44,7 @@ func (e *Entry) Content() ([]byte, error) {
 		e.uid,
 		e.gid,
 		e.fileSize,
-		e.oid,
+		e.OID,
 		e.flags,
 		e.Path,
 		[]byte{0x00},
@@ -58,9 +59,13 @@ func (e *Entry) Content() ([]byte, error) {
 
 	// 1-8 nul bytes as necessary to pad the entry to a multiple of eight bytes
 	// while keeping the name NUL-terminated.
-	pad := buf.Len() % 8
-	if err := binary.Write(buf, binary.BigEndian, make([]byte, pad)); err != nil {
-		return nil, fmt.Errorf("encoding entry: %w", err)
+
+	mod := buf.Len() % 8
+	if mod > 0 {
+		pad := math.Abs(float64(buf.Len()%8 - 8))
+		if err := binary.Write(buf, binary.BigEndian, make([]byte, int(pad))); err != nil {
+			return nil, fmt.Errorf("encoding entry: %w", err)
+		}
 	}
 
 	return buf.Bytes(), nil
@@ -83,7 +88,7 @@ func NewEntryFromBytes(data []byte, pathLen int) (*Entry, error) {
 		uid:       binary.BigEndian.Uint32(data[28:32]),
 		gid:       binary.BigEndian.Uint32(data[32:36]),
 		fileSize:  binary.BigEndian.Uint32(data[36:40]),
-		oid:       data[40:60],
+		OID:       data[40:60],
 		flags:     binary.BigEndian.Uint16(data[60:62]),
 		Path:      data[62 : 62+pathLen],
 	}, nil
@@ -121,7 +126,7 @@ func NewEntry(pathname string, fInfo os.FileInfo, oid []byte) (*Entry, error) {
 		uid:       stat.Uid,
 		gid:       stat.Gid,
 		fileSize:  uint32(stat.Size),
-		oid:       oid,
+		OID:       oid,
 		flags:     uint16(flags),
 		Path:      []byte(pathname),
 	}, nil

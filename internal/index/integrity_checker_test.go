@@ -3,10 +3,11 @@ package index_test
 import (
 	"encoding/binary"
 	"encoding/hex"
-	"github.com/LukasJenicek/ggit/internal/index"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/LukasJenicek/ggit/internal/index"
 )
 
 func TestCheckIndexIntegrity(t *testing.T) {
