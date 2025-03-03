@@ -47,9 +47,11 @@ func TestWorkspace(t *testing.T) {
 	require.NoError(t, err)
 
 	tests := []struct {
-		name    string
-		pattern string
-		files   []string
+		name      string
+		pattern   string
+		files     []string
+		expectErr bool
+		err       error
 	}{
 		{
 			name:    "match specific file in current folder",
@@ -84,14 +86,26 @@ func TestWorkspace(t *testing.T) {
 				"tmp/testdata/b.txt",
 			},
 		},
+		{
+			name:      "match zero files should return err",
+			pattern:   "blabla.txt",
+			files:     []string{},
+			expectErr: true,
+			err:       &workspace.ErrPathNotMatched{Pattern: "blabla.txt"},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			f, err := w.ListFiles(tt.pattern)
 
-			require.NoError(t, err)
-			require.EqualValues(t, tt.files, f)
+			if tt.expectErr {
+				require.Error(t, err)
+				require.Equal(t, tt.err, err)
+			} else {
+				require.NoError(t, err)
+				require.EqualValues(t, tt.files, f)
+			}
 		})
 	}
 }

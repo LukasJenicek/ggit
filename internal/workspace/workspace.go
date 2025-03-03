@@ -62,7 +62,7 @@ func (w Workspace) ListFiles(patternMatch string) ([]string, error) {
 		}
 
 		if d.IsDir() {
-			if d.IsDir() && d.Name() == strings.TrimRight(patternMatch, "/") {
+			if d.Name() == strings.TrimRight(patternMatch, "/") {
 				matchDirectory = true
 			}
 
