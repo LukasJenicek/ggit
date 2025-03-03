@@ -45,13 +45,15 @@ func (w Workspace) ListFiles(patternMatch string) ([]string, error) {
 
 	var files []string
 
+	matchDirectory := false
+
 	err := w.fs.WalkDir(w.rootDir, func(path string, d fs.DirEntry, err error) error {
-		if slices.Contains(ignore, d.Name()) {
-			return filepath.SkipDir
+		if err != nil {
+			return fmt.Errorf("walk dir: %w", err)
 		}
 
-		if err != nil {
-			return err
+		if slices.Contains(ignore, d.Name()) {
+			return filepath.SkipDir
 		}
 
 		// do not include root folder name
@@ -60,16 +62,25 @@ func (w Workspace) ListFiles(patternMatch string) ([]string, error) {
 		}
 
 		if d.IsDir() {
+			if d.IsDir() && d.Name() == strings.TrimRight(patternMatch, "/") {
+				matchDirectory = true
+			}
+
 			return nil
 		}
 
-		// prevent traversal directory attack
-		cleanPath := filepath.Join(w.rootDir, filepath.Clean(strings.Replace(path, w.rootDir, "", 1)))
-		if !strings.HasPrefix(cleanPath, w.rootDir) {
-			return errors.New("invalid file path, outside of the root directory")
+		cleanPath, err := filepath.Rel(w.rootDir, filepath.Join(w.rootDir, path))
+		if err != nil {
+			return fmt.Errorf("filepath.Rel(%q, %q): %w", w.rootDir, path, err)
 		}
 
 		if patternMatch == "." {
+			files = append(files, cleanPath)
+
+			return nil
+		}
+
+		if matchDirectory && strings.Contains(cleanPath, patternMatch) {
 			files = append(files, cleanPath)
 
 			return nil
