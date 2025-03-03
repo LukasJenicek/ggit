@@ -1,90 +1,97 @@
 package workspace_test
 
 import (
-	"path/filepath"
+	"os"
 	"testing"
+	"testing/fstest"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/LukasJenicek/ggit/internal/filesystem"
-	"github.com/LukasJenicek/ggit/internal/helpers"
+	"github.com/LukasJenicek/ggit/internal/filesystem/memory"
 	"github.com/LukasJenicek/ggit/internal/workspace"
 )
 
-func TestWorkspace_ListFiles(t *testing.T) {
+func TestWorkspace(t *testing.T) {
 	t.Parallel()
 
-	projectRootFolder, err := helpers.GetProjectRootFolder()
-	if err != nil {
-		t.Error(err)
+	fsys := fstest.MapFS{
+		"tmp/testdata/": &fstest.MapFile{
+			Mode: os.ModeDir,
+		},
+		"tmp/testdata/a.txt": &fstest.MapFile{
+			Data: []byte("a"),
+			Mode: 0o644,
+		},
+		"tmp/testdata/b.txt": &fstest.MapFile{
+			Data: []byte("b"),
+			Mode: 0o644,
+		},
+		"tmp/testdata/internal/": &fstest.MapFile{
+			Mode: os.ModeDir,
+		},
+		"tmp/testdata/internal/a.txt": &fstest.MapFile{
+			Data: []byte("a"),
+		},
+		"tmp/testdata/internal/b.txt": &fstest.MapFile{
+			Data: []byte("b"),
+		},
+		"tmp/testdata/internal/memory/": &fstest.MapFile{
+			Mode: os.ModeDir,
+		},
+		"tmp/testdata/internal/memory/memory.go": &fstest.MapFile{
+			Data: []byte("func main(){ os.Exit(0) }"),
+		},
 	}
 
-	testDataFolder := filepath.Join(projectRootFolder, "testdata")
-
-	w, err := workspace.New(testDataFolder, filesystem.New())
+	w, err := workspace.New("tmp/testdata", memory.New(fsys))
 	require.NoError(t, err)
 
-	files, err := w.ListFiles(".")
-	if err != nil {
-		t.Errorf("list files: %s", err)
+	tests := []struct {
+		name    string
+		pattern string
+		files   []string
+	}{
+		{
+			name:    "match specific file in current folder",
+			pattern: "a.txt",
+			files:   []string{"tmp/testdata/a.txt"},
+		},
+		{
+			name:    "match specific folder and subfolders",
+			pattern: "internal/",
+			files: []string{
+				"tmp/testdata/internal/a.txt",
+				"tmp/testdata/internal/b.txt",
+				"tmp/testdata/internal/memory/memory.go",
+			},
+		},
+		{
+			name:    "match all files",
+			pattern: ".",
+			files: []string{
+				"tmp/testdata/a.txt",
+				"tmp/testdata/b.txt",
+				"tmp/testdata/internal/a.txt",
+				"tmp/testdata/internal/b.txt",
+				"tmp/testdata/internal/memory/memory.go",
+			},
+		},
+		{
+			name:    "match files within current directory with txt extension",
+			pattern: "*.txt",
+			files: []string{
+				"tmp/testdata/a.txt",
+				"tmp/testdata/b.txt",
+			},
+		},
 	}
 
-	assert.EqualValues(
-		t,
-		[]string{
-			filepath.Join(testDataFolder, "a", "a.txt"),
-			filepath.Join(testDataFolder, "a.txt"),
-			filepath.Join(testDataFolder, "b", "b.txt"),
-		}, files,
-	)
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f, err := w.ListFiles(tt.pattern)
 
-func TestWorkspace_ListSpecificFiles(t *testing.T) {
-	t.Parallel()
-
-	projectRootFolder, err := helpers.GetProjectRootFolder()
-	if err != nil {
-		t.Error(err)
+			require.NoError(t, err)
+			require.EqualValues(t, tt.files, f)
+		})
 	}
-
-	testDataFolder := filepath.Join(projectRootFolder, "testdata")
-
-	w, err := workspace.New(testDataFolder, filesystem.New())
-	require.NoError(t, err)
-
-	files, err := w.ListFiles("*.txt")
-	if err != nil {
-		t.Errorf("list files: %s", err)
-	}
-
-	assert.EqualValues(
-		t,
-		[]string{
-			filepath.Join(testDataFolder, "a", "a.txt"),
-			filepath.Join(testDataFolder, "a.txt"),
-			filepath.Join(testDataFolder, "b", "b.txt"),
-		}, files,
-	)
-}
-
-func TestWorkspace_ListSpecificFile(t *testing.T) {
-	t.Parallel()
-
-	projectRootFolder, err := helpers.GetProjectRootFolder()
-	if err != nil {
-		t.Error(err)
-	}
-
-	testDataFolder := filepath.Join(projectRootFolder, "testdata")
-
-	w, err := workspace.New(testDataFolder, filesystem.New())
-	require.NoError(t, err)
-
-	files, err := w.ListFiles("a.txt")
-	if err != nil {
-		t.Errorf("list files: %s", err)
-	}
-
-	assert.EqualValues(t, []string{filepath.Join(testDataFolder, "a.txt")}, files)
 }
