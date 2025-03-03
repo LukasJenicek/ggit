@@ -4,12 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
-	"log"
-	"os"
-
 	"github.com/LukasJenicek/ggit/internal/repository"
 	"github.com/LukasJenicek/ggit/internal/workspace"
+	"io"
 )
 
 type Runner struct {
@@ -45,7 +42,7 @@ func (r *Runner) commitCmd(output io.Writer) (int, error) {
 	if err != nil {
 		if errors.Is(err, repository.ErrNoFilesToCommit) {
 			fmt.Fprint(output, "%s", err.Error())
-			os.Exit(1)
+			return 1, nil
 		}
 
 		return 1, fmt.Errorf("commit cmd: %w", err)
@@ -91,7 +88,7 @@ func (r *Runner) addCmd(args []string, output io.Writer) (int, error) {
 func (r *Runner) initCmd(output io.Writer) (int, error) {
 	initCommand, err := NewInitCommand(r.repository)
 	if err != nil {
-		log.Fatalf("init command: %v", err)
+		return 1, fmt.Errorf("init command: %w", err)
 	}
 
 	out, err := initCommand.Run()
