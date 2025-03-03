@@ -1,7 +1,8 @@
 package command
 
 import (
-	"fmt"
+	"errors"
+
 	"github.com/LukasJenicek/ggit/internal/repository"
 )
 
@@ -12,14 +13,15 @@ type AddCommand struct {
 
 func NewAddCommand(paths []string, repository *repository.Repository) (*AddCommand, error) {
 	if repository == nil {
-		return nil, fmt.Errorf("repository is nil")
+		return nil, errors.New("repository is nil")
 	}
 
 	if len(paths) == 0 {
-		return nil, fmt.Errorf("paths is empty")
+		return nil, errors.New("paths is empty")
 	}
 
 	allEmpty := true
+
 	for _, path := range paths {
 		if path != "" {
 			allEmpty = false
@@ -27,7 +29,7 @@ func NewAddCommand(paths []string, repository *repository.Repository) (*AddComma
 	}
 
 	if allEmpty {
-		return nil, fmt.Errorf("paths is empty")
+		return nil, errors.New("paths is empty")
 	}
 
 	return &AddCommand{

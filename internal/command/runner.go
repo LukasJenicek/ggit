@@ -44,13 +44,15 @@ func (r *Runner) commitCmd(output io.Writer) (int, error) {
 	out, err := commitCmd.Run()
 	if err != nil {
 		if errors.Is(err, repository.ErrNoFilesToCommit) {
-			fmt.Fprintf(output, err.Error())
+			fmt.Fprint(output, "%s", err.Error())
 			os.Exit(1)
 		}
+
 		return 1, fmt.Errorf("commit cmd: %w", err)
 	}
 
-	fmt.Fprintf(output, string(out))
+	fmt.Fprint(output, "%s", string(out))
+
 	return 0, nil
 }
 
@@ -73,13 +75,16 @@ func (r *Runner) addCmd(args []string, output io.Writer) (int, error) {
 	if err != nil {
 		var cErr *workspace.ErrPathNotMatched
 		if errors.As(err, &cErr) {
-			fmt.Fprintf(output, err.Error())
+			fmt.Fprint(output, "%s", err.Error())
+
 			return 128, nil
 		}
+
 		return 1, fmt.Errorf("add files: %w", err)
 	}
 
-	fmt.Fprintf(output, string(out))
+	fmt.Fprint(output, "%s", string(out))
+
 	return 0, nil
 }
 
@@ -93,12 +98,14 @@ func (r *Runner) initCmd(output io.Writer) (int, error) {
 	if err != nil {
 		if errors.Is(err, ErrRepositoryAlreadyInitialized) {
 			fmt.Fprintf(output, "Reinitialized existing Git repository in %s", r.repository.GitPath)
+
 			return 0, nil
 		}
 
 		return 1, fmt.Errorf("run init: %w", err)
 	}
 
-	fmt.Fprintf(output, string(out))
+	fmt.Fprint(output, "%s", string(out))
+
 	return 0, nil
 }

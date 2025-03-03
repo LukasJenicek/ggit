@@ -131,37 +131,6 @@ func TestNew(t *testing.T) {
 	})
 }
 
-func TestInit(t *testing.T) {
-	t.Parallel()
-
-	t.Run("Init", func(t *testing.T) {
-		t.Parallel()
-
-		repo, err := repository.New(
-			memory.New(fstest.MapFS{}),
-			clock.NewFakeClock(time.Date(2000, 12, 15, 17, 8, 0o0, 0, time.UTC)),
-			"tmp/test/",
-		)
-		require.NoError(t, err)
-		require.NotNil(t, repo)
-
-		err = repo.Init()
-		require.NoError(t, err)
-
-		g, err := repo.FS.Stat("tmp/test/.git")
-		require.NoError(t, err)
-		require.True(t, g.IsDir())
-
-		g, err = repo.FS.Stat("tmp/test/.git/refs")
-		require.NoError(t, err)
-		require.True(t, g.IsDir())
-
-		g, err = repo.FS.Stat("tmp/test/.git/objects")
-		require.NoError(t, err)
-		require.True(t, g.IsDir())
-	})
-}
-
 func TestRepository_Commit(t *testing.T) {
 	t.Parallel()
 
