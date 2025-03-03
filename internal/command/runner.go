@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+
 	"github.com/LukasJenicek/ggit/internal/repository"
 	"github.com/LukasJenicek/ggit/internal/workspace"
-	"io"
 )
 
 type Runner struct {
@@ -19,7 +20,8 @@ func NewRunner(repo *repository.Repository) *Runner {
 	}
 }
 
-func (r *Runner) RunCmd(ctx context.Context, cmd string, args []string, output io.Writer) (osExit int, err error) {
+// RunCmd (osExit, err)
+func (r *Runner) RunCmd(ctx context.Context, cmd string, args []string, output io.Writer) (int, error) {
 	switch cmd {
 	case "init":
 		return r.initCmd(output)
@@ -41,14 +43,15 @@ func (r *Runner) commitCmd(output io.Writer) (int, error) {
 	out, err := commitCmd.Run()
 	if err != nil {
 		if errors.Is(err, repository.ErrNoFilesToCommit) {
-			fmt.Fprint(output, "%s", err.Error())
+			fmt.Fprintf(output, "%s", err.Error())
+
 			return 1, nil
 		}
 
 		return 1, fmt.Errorf("commit cmd: %w", err)
 	}
 
-	fmt.Fprint(output, "%s", string(out))
+	fmt.Fprintf(output, "%s", string(out))
 
 	return 0, nil
 }
@@ -72,7 +75,7 @@ func (r *Runner) addCmd(args []string, output io.Writer) (int, error) {
 	if err != nil {
 		var cErr *workspace.ErrPathNotMatched
 		if errors.As(err, &cErr) {
-			fmt.Fprint(output, "%s", err.Error())
+			fmt.Fprintf(output, "%s", err.Error())
 
 			return 128, nil
 		}
@@ -80,7 +83,7 @@ func (r *Runner) addCmd(args []string, output io.Writer) (int, error) {
 		return 1, fmt.Errorf("add files: %w", err)
 	}
 
-	fmt.Fprint(output, "%s", string(out))
+	fmt.Fprintf(output, "%s", string(out))
 
 	return 0, nil
 }
@@ -102,7 +105,7 @@ func (r *Runner) initCmd(output io.Writer) (int, error) {
 		return 1, fmt.Errorf("run init: %w", err)
 	}
 
-	fmt.Fprint(output, "%s", string(out))
+	fmt.Fprintf(output, "%s", string(out))
 
 	return 0, nil
 }
