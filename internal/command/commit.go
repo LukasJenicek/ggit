@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+
 	"github.com/LukasJenicek/ggit/internal/repository"
 )
 

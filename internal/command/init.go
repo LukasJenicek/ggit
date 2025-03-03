@@ -3,6 +3,7 @@ package command
 import (
 	"errors"
 	"fmt"
+
 	"github.com/LukasJenicek/ggit/internal/repository"
 )
 
@@ -31,7 +32,7 @@ func (i *InitCommand) Run() ([]byte, error) {
 		return nil, fmt.Errorf("init repository: %w", err)
 	}
 
-	msg := fmt.Sprintf("Initialized empty Git repository in %s", i.repository.GitPath)
+	msg := "Initialized empty Git repository in " + i.repository.GitPath
 
 	return []byte(msg), nil
 }
