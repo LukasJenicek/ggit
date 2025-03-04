@@ -72,6 +72,8 @@ func NewIndexer(
 	}, nil
 }
 
+// Add
+// adding files to git index
 func (i *Indexer) Add(files []string) error {
 	if err := i.createIndexFile(); err != nil {
 		return fmt.Errorf("create index file: %w", err)
@@ -117,25 +119,7 @@ func (i *Indexer) Add(files []string) error {
 	return nil
 }
 
-// hello.txt/world.txt and hello.txt file can't coexist in the same index.
-func (i *Indexer) discardConflicts(files []string, indexEntries Entries) {
-	for _, f := range files {
-		filepathParts := strings.Split(f, string(os.PathSeparator))
-		if len(filepathParts) == 1 {
-			continue
-		}
-
-		for i, fPart := range filepathParts {
-			part := fPart
-			if i > 0 {
-				part = filepath.Join(filepathParts[:i]...)
-			}
-
-			delete(indexEntries, part)
-		}
-	}
-}
-
+// LoadIndex
 // TODO: Determine handling strategy when no files are added to the index.
 // Options: return error, create empty index, or maintain current behavior.
 func (i *Indexer) LoadIndex() (Entries, error) {
@@ -204,6 +188,25 @@ func (i *Indexer) LoadIndex() (Entries, error) {
 	}
 
 	return entries, nil
+}
+
+// hello.txt/world.txt and hello.txt file can't coexist in the same index.
+func (i *Indexer) discardConflicts(files []string, indexEntries Entries) {
+	for _, f := range files {
+		filepathParts := strings.Split(f, string(os.PathSeparator))
+		if len(filepathParts) == 1 {
+			continue
+		}
+
+		for i, fPart := range filepathParts {
+			part := fPart
+			if i > 0 {
+				part = filepath.Join(filepathParts[:i]...)
+			}
+
+			delete(indexEntries, part)
+		}
+	}
 }
 
 // create .git/index file if does not exist.
