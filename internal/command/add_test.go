@@ -18,6 +18,128 @@ import (
 	"github.com/LukasJenicek/ggit/internal/repository"
 )
 
+func TestAddFilesNameConflict(t *testing.T) {
+	t.Parallel()
+
+	fs := fstest.MapFS{
+		"tmp/test/": &fstest.MapFile{
+			Mode: os.ModeDir,
+		},
+		"tmp/test/world.txt": &fstest.MapFile{
+			Data: []byte("world"),
+			Mode: 33204,
+			Sys: &syscall.Stat_t{
+				Dev:     66306,
+				Ino:     26874043,
+				Nlink:   1,
+				Mode:    33204,
+				Uid:     1000,
+				Gid:     1000,
+				Size:    6,
+				Blksize: 4096,
+				Blocks:  8,
+				Atim: syscall.Timespec{
+					Sec:  1740497047,
+					Nsec: 592315384,
+				},
+				Mtim: syscall.Timespec{
+					Sec:  1739287401,
+					Nsec: 888108884,
+				},
+				Ctim: syscall.Timespec{
+					Sec:  1739287401,
+					Nsec: 888108884,
+				},
+			},
+		},
+	}
+
+	repo, err := repository.New(
+		memory.New(fs),
+		clock.NewFakeClock(time.Date(2000, 12, 15, 17, 8, 0o0, 0, time.UTC)),
+		"tmp/test",
+	)
+	require.NoError(t, err)
+
+	initCmd, err := command.NewInitCommand(repo)
+	require.NoError(t, err)
+
+	_, err = initCmd.Run()
+	require.NoError(t, err)
+
+	cmd, err := command.NewAddCommand([]string{"."}, repo)
+	require.NoError(t, err)
+
+	_, err = cmd.Run()
+	require.NoError(t, err)
+
+	fs["tmp/test/hello.txt"] = &fstest.MapFile{
+		Mode: os.ModeDir,
+	}
+
+	fs["tmp/test/hello.txt/world.txt"] = &fstest.MapFile{
+		Data: []byte("world"),
+		Mode: 33204,
+		Sys: &syscall.Stat_t{
+			Dev:     66306,
+			Ino:     26874043,
+			Nlink:   1,
+			Mode:    33204,
+			Uid:     1000,
+			Gid:     1000,
+			Size:    6,
+			Blksize: 4096,
+			Blocks:  8,
+			Atim: syscall.Timespec{
+				Sec:  1740497047,
+				Nsec: 592315384,
+			},
+			Mtim: syscall.Timespec{
+				Sec:  1739287401,
+				Nsec: 888108884,
+			},
+			Ctim: syscall.Timespec{
+				Sec:  1739287401,
+				Nsec: 888108884,
+			},
+		},
+	}
+
+	cmd, err = command.NewAddCommand([]string{"."}, repo)
+	require.NoError(t, err)
+
+	_, err = cmd.Run()
+	require.NoError(t, err)
+
+	content, err := fs.ReadFile("tmp/test/.git/index")
+	require.NoError(t, err)
+
+	var expectedContent []byte
+	expectedContent = append(expectedContent, []byte("DIRC")...)
+	// version
+	expectedContent = append(expectedContent, []byte{0, 0, 0, 2}...)
+	// number of files
+	expectedContent = append(expectedContent, []byte{0, 0, 0, 2}...)
+
+	bytes, err := fileContent(t, fs, "tmp/test/hello.txt/world.txt", "hello.txt/world.txt")
+	require.NoError(t, err)
+
+	expectedContent = append(expectedContent, bytes...)
+
+	bytes, err = fileContent(t, fs, "tmp/test/world.txt", "world.txt")
+	require.NoError(t, err)
+
+	expectedContent = append(expectedContent, bytes...)
+
+	// sha1 checksum of content
+	oid, err := hasher.SHA1HashContent(expectedContent)
+	require.NoError(t, err)
+
+	expectedContent = append(expectedContent, oid...)
+
+	require.EqualValues(t, expectedContent, content)
+}
+
 func TestAddFiles(t *testing.T) {
 	t.Parallel()
 
