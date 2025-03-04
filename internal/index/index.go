@@ -4,13 +4,14 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/LukasJenicek/ggit/internal/database"
-	"github.com/LukasJenicek/ggit/internal/ds"
-	"github.com/LukasJenicek/ggit/internal/filesystem"
 	"io"
 	"os"
 	"path/filepath"
-	"sort"
+	"strings"
+
+	"github.com/LukasJenicek/ggit/internal/database"
+	"github.com/LukasJenicek/ggit/internal/ds"
+	"github.com/LukasJenicek/ggit/internal/filesystem"
 )
 
 const (
@@ -20,12 +21,11 @@ const (
 )
 
 type Indexer struct {
-	fs         filesystem.Fs
-	fileWriter *filesystem.AtomicFileWriter
-	database   *database.Database
-	locker     filesystem.Locker
-	content    *Content
-
+	fs            filesystem.Fs
+	fileWriter    *filesystem.AtomicFileWriter
+	database      *database.Database
+	locker        filesystem.Locker
+	content       *Content
 	indexFilePath string
 	rootDir       string
 }
@@ -35,7 +35,6 @@ func NewIndexer(
 	fileWriter *filesystem.AtomicFileWriter,
 	locker filesystem.Locker,
 	database *database.Database,
-	gitPath string,
 	rootDir string,
 ) (*Indexer, error) {
 	if fs == nil {
@@ -54,10 +53,6 @@ func NewIndexer(
 		return nil, errors.New("database is nil")
 	}
 
-	if gitPath == "" {
-		return nil, errors.New("git path is empty")
-	}
-
 	if rootDir == "" {
 		return nil, errors.New("root dir is empty")
 	}
@@ -72,8 +67,8 @@ func NewIndexer(
 			fs:       fs,
 			rootDir:  rootDir,
 		},
-		indexFilePath: filepath.Join(gitPath, "index"),
 		rootDir:       rootDir,
+		indexFilePath: filepath.Join(rootDir, ".git", "index"),
 	}, nil
 }
 
@@ -91,6 +86,8 @@ func (i *Indexer) Add(files []string) error {
 	if err != nil {
 		return fmt.Errorf("save blobs: %w", err)
 	}
+
+	i.discardConflicts(files, indexEntries)
 
 	for _, e := range entries {
 		fInfo, err := i.fs.Stat(e.Filepath)
@@ -120,20 +117,23 @@ func (i *Indexer) Add(files []string) error {
 	return nil
 }
 
-type Entries map[string]*Entry
+// hello.txt/world.txt and hello.txt file can't coexist in the same index.
+func (i *Indexer) discardConflicts(files []string, indexEntries Entries) {
+	for _, f := range files {
+		filepathParts := strings.Split(f, string(os.PathSeparator))
+		if len(filepathParts) == 1 {
+			continue
+		}
 
-func (e *Entries) SortedValues() []*Entry {
-	entries := make([]*Entry, 0, len(*e))
+		for i, fPart := range filepathParts {
+			part := fPart
+			if i > 0 {
+				part = filepath.Join(filepathParts[:i]...)
+			}
 
-	for _, v := range *e {
-		entries = append(entries, v)
+			delete(indexEntries, part)
+		}
 	}
-
-	sort.Slice(entries, func(i, j int) bool {
-		return string(entries[i].Path) < string(entries[j].Path)
-	})
-
-	return entries
 }
 
 // TODO: Determine handling strategy when no files are added to the index.

@@ -7,8 +7,25 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"sort"
 	"syscall"
 )
+
+type Entries map[string]*Entry
+
+func (e *Entries) SortedValues() []*Entry {
+	entries := make([]*Entry, 0, len(*e))
+
+	for _, v := range *e {
+		entries = append(entries, v)
+	}
+
+	sort.Slice(entries, func(i, j int) bool {
+		return string(entries[i].Path) < string(entries[j].Path)
+	})
+
+	return entries
+}
 
 type Entry struct {
 	ctime     uint32

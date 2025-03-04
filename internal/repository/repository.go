@@ -75,7 +75,7 @@ func New(fs filesystem.Fs, clock clock.Clock, cwd string) (*Repository, error) {
 		return nil, fmt.Errorf("init database: %w", err)
 	}
 
-	indexer, err := index.NewIndexer(fs, writer, locker, db, gitPath, cwd)
+	indexer, err := index.NewIndexer(fs, writer, locker, db, cwd)
 	if err != nil {
 		return nil, fmt.Errorf("init indexer: %w", err)
 	}
@@ -146,8 +146,6 @@ func (r *Repository) Add(paths []string) error {
 
 		files = append(files, f...)
 	}
-
-	fmt.Println(files)
 
 	if err := r.Indexer.Add(files); err != nil {
 		return fmt.Errorf("add files to index: %w", err)

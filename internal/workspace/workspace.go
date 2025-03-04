@@ -39,8 +39,7 @@ func New(rootDir string, fs filesystem.Fs) (*Workspace, error) {
 	}, nil
 }
 
-// ListFiles
-// Match files the paths are in relative format to root dir
+// Match files the paths are in relative format to root dir.
 func (w Workspace) ListFiles(patternMatch string) ([]string, error) {
 	// TODO: load more ignored files from config
 	ignore := []string{".", "..", ".git"}

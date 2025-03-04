@@ -20,7 +20,7 @@ func NewRunner(repo *repository.Repository) *Runner {
 	}
 }
 
-// RunCmd (osExit, err)
+// RunCmd (osExit, err).
 func (r *Runner) RunCmd(ctx context.Context, cmd string, args []string, output io.Writer) (int, error) {
 	switch cmd {
 	case "init":
