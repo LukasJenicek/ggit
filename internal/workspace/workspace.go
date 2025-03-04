@@ -39,6 +39,8 @@ func New(rootDir string, fs filesystem.Fs) (*Workspace, error) {
 	}, nil
 }
 
+// ListFiles
+// Match files the paths are in relative format to root dir
 func (w Workspace) ListFiles(patternMatch string) ([]string, error) {
 	// TODO: load more ignored files from config
 	ignore := []string{".", "..", ".git"}
@@ -69,9 +71,9 @@ func (w Workspace) ListFiles(patternMatch string) ([]string, error) {
 			return nil
 		}
 
-		cleanPath, err := filepath.Rel(w.rootDir, filepath.Join(w.rootDir, path))
+		cleanPath, err := filepath.Rel(w.rootDir, path)
 		if err != nil {
-			return fmt.Errorf("filepath.Rel(%q, %q): %w", w.rootDir, path, err)
+			return fmt.Errorf("get relative path: %w", err)
 		}
 
 		if patternMatch == "." {
@@ -86,7 +88,7 @@ func (w Workspace) ListFiles(patternMatch string) ([]string, error) {
 			return nil
 		}
 
-		match, err := filepath.Match(filepath.Join(w.rootDir, patternMatch), cleanPath)
+		match, err := filepath.Match(patternMatch, cleanPath)
 		if err != nil {
 			return fmt.Errorf("matching path %q with pattern %q: %w", cleanPath, patternMatch, err)
 		}

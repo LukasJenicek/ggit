@@ -56,34 +56,34 @@ func TestWorkspace(t *testing.T) {
 		{
 			name:    "match specific file in current folder",
 			pattern: "a.txt",
-			files:   []string{"tmp/testdata/a.txt"},
+			files:   []string{"a.txt"},
 		},
 		{
 			name:    "match specific folder and subfolders",
 			pattern: "internal/",
 			files: []string{
-				"tmp/testdata/internal/a.txt",
-				"tmp/testdata/internal/b.txt",
-				"tmp/testdata/internal/memory/memory.go",
+				"internal/a.txt",
+				"internal/b.txt",
+				"internal/memory/memory.go",
 			},
 		},
 		{
 			name:    "match all files",
 			pattern: ".",
 			files: []string{
-				"tmp/testdata/a.txt",
-				"tmp/testdata/b.txt",
-				"tmp/testdata/internal/a.txt",
-				"tmp/testdata/internal/b.txt",
-				"tmp/testdata/internal/memory/memory.go",
+				"a.txt",
+				"b.txt",
+				"internal/a.txt",
+				"internal/b.txt",
+				"internal/memory/memory.go",
 			},
 		},
 		{
 			name:    "match files within current directory with txt extension",
 			pattern: "*.txt",
 			files: []string{
-				"tmp/testdata/a.txt",
-				"tmp/testdata/b.txt",
+				"a.txt",
+				"b.txt",
 			},
 		},
 		{

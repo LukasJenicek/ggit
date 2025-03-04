@@ -51,7 +51,7 @@ func TestNew(t *testing.T) {
 
 		require.NotNil(t, repo)
 
-		d, err := database.New(fs, gitPath)
+		d, err := database.New(fs, cwd)
 		require.NoError(t, err)
 
 		w, err := workspace.New(cwd, fs)
@@ -101,7 +101,7 @@ func TestNew(t *testing.T) {
 
 		require.NotNil(t, repo)
 
-		db, err := database.New(fs, gitPath)
+		db, err := database.New(fs, cwd)
 		require.NoError(t, err)
 
 		w, err := workspace.New(cwd, fs)

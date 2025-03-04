@@ -13,7 +13,7 @@ import (
 func TestDatabase_StoreRootTree(t *testing.T) {
 	t.Parallel()
 
-	d, err := database.New(memory.New(fstest.MapFS{}), "tmp/.git")
+	d, err := database.New(memory.New(fstest.MapFS{}), "tmp")
 	require.NoError(t, err)
 
 	root := database.NewTree(nil, "")

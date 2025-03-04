@@ -15,28 +15,31 @@ import (
 )
 
 type Database struct {
-	fs          filesystem.Fs
-	gitRootDir  string
+	fs filesystem.Fs
+
+	gitDir      string
 	objectsPath string
+	rootDir     string
 }
 
 type Object interface {
 	Content() ([]byte, error)
 }
 
-func New(fs filesystem.Fs, gitDir string) (*Database, error) {
+func New(fs filesystem.Fs, rootDir string) (*Database, error) {
 	if fs == nil {
 		return nil, errors.New("fs must not be nil")
 	}
 
-	if gitDir == "" {
+	if rootDir == "" {
 		return nil, errors.New("git dir must not be empty")
 	}
 
 	return &Database{
 		fs:          fs,
-		gitRootDir:  gitDir,
-		objectsPath: filepath.Join(gitDir, "objects"),
+		rootDir:     rootDir,
+		gitDir:      filepath.Join(rootDir, ".git"),
+		objectsPath: filepath.Join(rootDir, ".git", "objects"),
 	}, nil
 }
 
@@ -93,15 +96,15 @@ func (d *Database) Store(o Object) ([]byte, error) {
 	return oid, nil
 }
 
-func (d *Database) SaveBlobs(files ds.Set[string]) ([]*Entry, error) {
-	entries := make([]*Entry, 0, len(files))
+func (d *Database) SaveBlobs(filePaths ds.Set[string]) ([]*Entry, error) {
+	entries := make([]*Entry, 0, len(filePaths))
 
-	filesSorted := files.SortedValues(func(a, b string) bool {
+	filesSorted := filePaths.SortedValues(func(a, b string) bool {
 		return a < b
 	})
 
 	for _, file := range filesSorted {
-		entry, err := d.saveBlob(file)
+		entry, err := d.saveBlob(filepath.Join(d.rootDir, file))
 		if err != nil {
 			return nil, fmt.Errorf("save blob: %w", err)
 		}

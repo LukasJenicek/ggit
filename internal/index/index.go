@@ -4,14 +4,13 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/LukasJenicek/ggit/internal/database"
+	"github.com/LukasJenicek/ggit/internal/ds"
+	"github.com/LukasJenicek/ggit/internal/filesystem"
 	"io"
 	"os"
 	"path/filepath"
 	"sort"
-
-	"github.com/LukasJenicek/ggit/internal/database"
-	"github.com/LukasJenicek/ggit/internal/ds"
-	"github.com/LukasJenicek/ggit/internal/filesystem"
 )
 
 const (
