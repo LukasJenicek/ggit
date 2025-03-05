@@ -79,7 +79,7 @@ func (i *Indexer) Add(files []string) error {
 		return fmt.Errorf("create index file: %w", err)
 	}
 
-	indexEntries, err := i.LoadIndex()
+	indexEntries, parents, err := i.LoadIndex()
 	if err != nil {
 		return fmt.Errorf("load index: %w", err)
 	}
@@ -89,7 +89,7 @@ func (i *Indexer) Add(files []string) error {
 		return fmt.Errorf("save blobs: %w", err)
 	}
 
-	i.discardConflicts(files, indexEntries)
+	i.cleanIndex(files, indexEntries, parents)
 
 	for _, e := range entries {
 		fInfo, err := i.fs.Stat(e.Filepath)
@@ -122,10 +122,10 @@ func (i *Indexer) Add(files []string) error {
 // LoadIndex
 // TODO: Determine handling strategy when no files are added to the index.
 // Options: return error, create empty index, or maintain current behavior.
-func (i *Indexer) LoadIndex() (Entries, error) {
+func (i *Indexer) LoadIndex() (Entries, map[string][]*Entry, error) {
 	lock, err := i.locker.Lock(i.indexFilePath)
 	if err != nil {
-		return nil, fmt.Errorf("lock index: %w", err)
+		return nil, nil, fmt.Errorf("lock index: %w", err)
 	}
 
 	defer func() {
@@ -137,22 +137,23 @@ func (i *Indexer) LoadIndex() (Entries, error) {
 
 	indexFile, err := i.fs.Open(i.indexFilePath)
 	if err != nil {
-		return nil, fmt.Errorf("open index file %q: %w", i.indexFilePath, err)
+		return nil, nil, fmt.Errorf("open index file %q: %w", i.indexFilePath, err)
 	}
 
 	content, err := io.ReadAll(indexFile)
 	if err != nil {
-		return nil, fmt.Errorf("read index file: %w", err)
+		return nil, nil, fmt.Errorf("read index file: %w", err)
 	}
 
 	if len(content) > 0 {
 		if err = CheckIndexIntegrity(content); err != nil {
-			return nil, fmt.Errorf("index integrity: %w", err)
+			return nil, nil, fmt.Errorf("index integrity: %w", err)
 		}
 	}
 
 	entryLen := binary.BigEndian.Uint32(content[8:12])
 	entries := make(Entries, entryLen)
+	parents := make(map[string][]*Entry)
 
 	currPosition := 12
 	for range entryLen {
@@ -172,7 +173,23 @@ func (i *Indexer) LoadIndex() (Entries, error) {
 
 		entry, err := NewEntryFromBytes(content[currPosition:cursorPos], int(pathLen))
 		if err != nil {
-			return nil, fmt.Errorf("create entry: %w", err)
+			return nil, nil, fmt.Errorf("create entry: %w", err)
+		}
+
+		dir, _ := filepath.Split(string(entry.Path))
+		parentsFolderPaths := strings.Split(dir, string(os.PathSeparator))
+		for i, parentsFolderPath := range parentsFolderPaths {
+			p := parentsFolderPath
+			if i > 0 {
+				p = strings.Join(parentsFolderPaths[:i+1], string(os.PathSeparator))
+			}
+
+			_, ok := parents[p]
+			if !ok {
+				parents[parentsFolderPath] = make([]*Entry, 0)
+			}
+
+			parents[parentsFolderPath] = append(parents[parentsFolderPath], entry)
 		}
 
 		entries[string(entry.Path)] = entry
@@ -187,13 +204,13 @@ func (i *Indexer) LoadIndex() (Entries, error) {
 		currPosition = cursorPos
 	}
 
-	return entries, nil
+	return entries, parents, nil
 }
 
 // hello.txt/world.txt and hello.txt file can't coexist in the same index.
-func (i *Indexer) discardConflicts(files []string, indexEntries Entries) {
-	for _, f := range files {
-		filepathParts := strings.Split(f, string(os.PathSeparator))
+func (i *Indexer) cleanIndex(filePaths []string, indexEntries Entries, parents map[string][]*Entry) {
+	for _, filePath := range filePaths {
+		filepathParts := strings.Split(filePath, string(os.PathSeparator))
 		if len(filepathParts) == 1 {
 			continue
 		}
@@ -205,6 +222,15 @@ func (i *Indexer) discardConflicts(files []string, indexEntries Entries) {
 			}
 
 			delete(indexEntries, part)
+		}
+
+		// if new file conflicts with existing folder
+		// all files within that folder must be deleted
+		if _, ok := parents[filePath]; ok {
+			for _, entry := range parents[filePath] {
+				delete(indexEntries, string(entry.Path))
+				delete(parents, filePath)
+			}
 		}
 	}
 }
