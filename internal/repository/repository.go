@@ -155,7 +155,7 @@ func (r *Repository) Add(paths []string) error {
 }
 
 func (r *Repository) Commit() (string, error) {
-	indexEntries, err := r.Indexer.LoadIndex()
+	indexEntries, _, err := r.Indexer.LoadIndex()
 	if err != nil {
 		return "", fmt.Errorf("load index: %w", err)
 	}
