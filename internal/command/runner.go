@@ -34,7 +34,7 @@ func (r *Runner) RunCmd(ctx context.Context, cmd string, args []string, output i
 		return r.addCmd(args, output)
 	}
 
-	return 127, fmt.Errorf("unknown command: %s", cmd)
+	return 1, fmt.Errorf("ggit: %q is not a ggit command. See 'ggit --help'", cmd)
 }
 
 func (r *Runner) commitCmd(output io.Writer) (int, error) {

@@ -64,10 +64,10 @@ func TestNew(t *testing.T) {
 			FS:        fs,
 			Workspace: w,
 			Database:  d,
-			Indexer:   indexer,
+			Index:     indexer,
 			Clock:     fakeClock,
 			Refs:      refs,
-			Config: &config.Config{
+			GitConfig: &config.Config{
 				User: &config.User{
 					Name:  "Lukas Jenicek",
 					Email: "lukas.jenicek5@gmail.com",
@@ -114,10 +114,10 @@ func TestNew(t *testing.T) {
 			FS:        fs,
 			Workspace: w,
 			Database:  db,
-			Indexer:   indexer,
+			Index:     indexer,
 			Clock:     fakeClock,
 			Refs:      refs,
-			Config: &config.Config{
+			GitConfig: &config.Config{
 				User: &config.User{
 					Name:  "Lukas Jenicek",
 					Email: "lukas.jenicek5@gmail.com",

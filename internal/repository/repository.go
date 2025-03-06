@@ -21,13 +21,15 @@ var ErrNoFilesToCommit = errors.New("nothing added to commit (use 'ggit add' to 
 // Repository
 // Cwd = Is relative folder where you run ggit commands.
 type Repository struct {
-	Config    *config.Config
-	Clock     clock.Clock
+	GitConfig *config.Config
 	Database  *database.Database
-	FS        filesystem.Fs
-	Indexer   *index.Indexer
+	Index     *index.Indexer
 	Workspace *workspace.Workspace
 	Refs      *database.Refs
+
+	// Important for unit testing
+	Clock clock.Clock
+	FS    filesystem.Fs
 
 	Cwd         string
 	RootDir     string
@@ -89,10 +91,10 @@ func New(fs filesystem.Fs, clock clock.Clock, cwd string) (*Repository, error) {
 		FS:          fs,
 		Workspace:   w,
 		Database:    db,
-		Indexer:     indexer,
+		Index:       indexer,
 		Clock:       clock,
 		Refs:        refs,
-		Config:      cfg,
+		GitConfig:   cfg,
 		RootDir:     cwd,
 		Cwd:         cwd,
 		GitPath:     gitPath,
@@ -149,7 +151,7 @@ func (r *Repository) Add(paths []string) error {
 		files = append(files, f...)
 	}
 
-	if err := r.Indexer.Add(files); err != nil {
+	if err := r.Index.Add(files); err != nil {
 		return fmt.Errorf("add files to index: %w", err)
 	}
 
@@ -157,7 +159,7 @@ func (r *Repository) Add(paths []string) error {
 }
 
 func (r *Repository) Commit() (string, error) {
-	indexEntries, _, err := r.Indexer.LoadEntries()
+	indexEntries, _, err := r.Index.LoadEntries()
 	if err != nil {
 		return "", fmt.Errorf("load index: %w", err)
 	}
@@ -190,7 +192,7 @@ func (r *Repository) Commit() (string, error) {
 	}
 
 	now := time.Now()
-	author := database.NewAuthor(r.Config.User.Email, r.Config.User.Name, &now)
+	author := database.NewAuthor(r.GitConfig.User.Email, r.GitConfig.User.Name, &now)
 
 	// TODO: read from file or cmd argument
 	commitMessage := "all"
