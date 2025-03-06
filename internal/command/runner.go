@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/LukasJenicek/ggit/internal/repository"
 	"github.com/LukasJenicek/ggit/internal/workspace"
@@ -76,6 +77,12 @@ func (r *Runner) addCmd(args []string, output io.Writer) (int, error) {
 		var cErr *workspace.ErrPathNotMatched
 		if errors.As(err, &cErr) {
 			fmt.Fprintf(output, "%s", cErr.Error())
+			return 128, nil
+		}
+
+		if errors.Is(err, os.ErrPermission) {
+			fmt.Fprintf(output, "error: permission denied\n")
+			fmt.Fprintf(output, "fatal: adding files failed")
 			return 128, nil
 		}
 
