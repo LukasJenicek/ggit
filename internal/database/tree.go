@@ -45,7 +45,7 @@ func (t *Tree) Content() ([]byte, error) {
 		tree, ok := entry.(*Tree)
 		if ok {
 			if string(tree.oid) == "" {
-				return nil, fmt.Errorf("tree %s has no OID", t.name)
+				return nil, fmt.Errorf("tree %s has no SetOID", t.name)
 			}
 
 			content += fmt.Sprintf("%s %s\x00%s", directoryMode, tree.name, tree.oid)

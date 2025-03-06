@@ -102,7 +102,7 @@ func New(fs filesystem.Fs, clock clock.Clock, cwd string) (*Repository, error) {
 	}, nil
 }
 
-func (r *Repository) Init() error {
+func (repo *Repository) Init() error {
 	dirs := []string{
 		".git",
 		".git/branches",
@@ -117,27 +117,27 @@ func (r *Repository) Init() error {
 	}
 
 	for _, path := range dirs {
-		absPath := filepath.Join(r.RootDir, path)
+		absPath := filepath.Join(repo.RootDir, path)
 
-		err := r.FS.Mkdir(absPath, os.ModePerm)
+		err := repo.FS.Mkdir(absPath, os.ModePerm)
 		if err != nil {
 			return fmt.Errorf("create %s directory: %w", absPath, err)
 		}
 	}
 
 	// TODO: Parse default branch from config
-	if err := r.Refs.InitRef("ref: refs/heads/master"); err != nil {
+	if err := repo.Refs.InitRef("ref: refs/heads/master"); err != nil {
 		return fmt.Errorf("init ref: %w", err)
 	}
 
 	return nil
 }
 
-func (r *Repository) Add(paths []string) error {
+func (repo *Repository) Add(paths []string) error {
 	var files []string
 
 	for _, path := range paths {
-		f, err := r.Workspace.ListFiles(path)
+		f, err := repo.Workspace.ListFiles(path)
 		if err != nil {
 			return fmt.Errorf("list files: %w", err)
 		}
@@ -151,21 +151,21 @@ func (r *Repository) Add(paths []string) error {
 		files = append(files, f...)
 	}
 
-	if err := r.Index.Add(files); err != nil {
+	if err := repo.Index.Add(files); err != nil {
 		return fmt.Errorf("add files to index: %w", err)
 	}
 
 	return nil
 }
 
-func (r *Repository) Commit() (string, error) {
-	indexEntries, _, err := r.Index.LoadEntries()
+func (repo *Repository) Commit() (*database.Commit, error) {
+	indexEntries, _, err := repo.Index.LoadEntries()
 	if err != nil {
-		return "", fmt.Errorf("load index: %w", err)
+		return nil, fmt.Errorf("load index: %w", err)
 	}
 
 	if len(indexEntries) == 0 {
-		return "", ErrNoFilesToCommit
+		return nil, ErrNoFilesToCommit
 	}
 
 	entries := make([]*database.Entry, 0, len(indexEntries))
@@ -175,7 +175,7 @@ func (r *Repository) Commit() (string, error) {
 
 		entry, err := database.NewEntry(filepath.Base(filePath), filePath, iEntry.OID, false)
 		if err != nil {
-			return "", fmt.Errorf("create entry: %w", err)
+			return nil, fmt.Errorf("create entry: %w", err)
 		}
 
 		entries = append(entries, entry)
@@ -183,39 +183,43 @@ func (r *Repository) Commit() (string, error) {
 
 	root, err := database.Build(database.NewRootTree(), entries)
 	if err != nil {
-		return "", fmt.Errorf("build tree: %w", err)
+		return nil, fmt.Errorf("build tree: %w", err)
 	}
 
-	rootID, err := r.Database.StoreTree(root)
+	rootID, err := repo.Database.StoreTree(root)
 	if err != nil {
-		return "", fmt.Errorf("store tree structure: %w", err)
+		return nil, fmt.Errorf("store tree structure: %w", err)
 	}
 
 	now := time.Now()
-	author := database.NewAuthor(r.GitConfig.User.Email, r.GitConfig.User.Name, &now)
+	author := database.NewAuthor(repo.GitConfig.User.Email, repo.GitConfig.User.Name, &now)
 
 	// TODO: read from file or cmd argument
 	commitMessage := "all"
 
-	headCommit, err := r.Refs.Current()
+	parent, err := repo.Refs.ReadHead()
 	if err != nil {
-		return "", fmt.Errorf("get current commit: %w", err)
+		return nil, fmt.Errorf("read head: %w", err)
 	}
 
-	c, err := database.NewCommit(hex.EncodeToString(rootID), author, commitMessage, headCommit)
+	c, err := database.NewCommit(parent, hex.EncodeToString(rootID), author, commitMessage)
 	if err != nil {
-		return "", fmt.Errorf("create commit: %w", err)
+		return nil, fmt.Errorf("create commit: %w", err)
 	}
 
-	commitID, err := r.Database.Store(c)
+	commitID, err := repo.Database.Store(c)
 	if err != nil {
-		return "", fmt.Errorf("store commit: %w", err)
+		return nil, fmt.Errorf("store commit: %w", err)
 	}
 
 	cID := hex.EncodeToString(commitID)
-	if err = r.Refs.UpdateHead(cID); err != nil {
-		return "", fmt.Errorf("update head: %w", err)
+	if err = repo.Refs.UpdateHead(cID); err != nil {
+		return nil, fmt.Errorf("update head: %w", err)
 	}
 
-	return cID, nil
+	if err = c.SetOID(cID); err != nil {
+		return nil, fmt.Errorf("set commit oid: %w", err)
+	}
+
+	return c, nil
 }

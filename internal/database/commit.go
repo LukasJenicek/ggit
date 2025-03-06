@@ -7,15 +7,16 @@ import (
 )
 
 type Commit struct {
-	treeOid string
-	author  *Author
-	message string
-	parent  string
+	RootOID string
+	OID     string
+	Author  *Author
+	Message string
+	Parent  string
 }
 
-func NewCommit(treeOid string, author *Author, message string, parent string) (*Commit, error) {
-	if strings.TrimSpace(treeOid) == "" {
-		return nil, errors.New("treeOid must not be empty")
+func NewCommit(parent string, rootOID string, author *Author, message string) (*Commit, error) {
+	if strings.TrimSpace(rootOID) == "" {
+		return nil, errors.New("root oid must not be empty")
 	}
 
 	if strings.TrimSpace(message) == "" {
@@ -23,21 +24,31 @@ func NewCommit(treeOid string, author *Author, message string, parent string) (*
 	}
 
 	return &Commit{
-		treeOid: treeOid,
-		author:  author,
-		message: message,
-		parent:  parent,
+		RootOID: rootOID,
+		Author:  author,
+		Message: message,
+		Parent:  parent,
 	}, nil
 }
 
-func (c *Commit) Content() ([]byte, error) {
-	lines := []string{"tree " + c.treeOid}
-	if c.parent != "" {
-		lines = append(lines, "parent "+c.parent)
+func (c *Commit) SetOID(oid string) error {
+	if len(oid) != 40 {
+		return fmt.Errorf("oid must be 40 characters long: %s", oid)
 	}
 
-	lines = append(lines, "author "+c.author.String(), "committer "+c.author.String())
-	lines = append(lines, "", c.message)
+	c.OID = oid
+
+	return nil
+}
+
+func (c *Commit) Content() ([]byte, error) {
+	lines := []string{"tree " + c.RootOID}
+	if c.Parent != "" {
+		lines = append(lines, "parent "+c.Parent)
+	}
+
+	lines = append(lines, "author "+c.Author.String(), "committer "+c.Author.String())
+	lines = append(lines, "", c.Message)
 
 	content := strings.Join(lines, "\n")
 	content += "\n"

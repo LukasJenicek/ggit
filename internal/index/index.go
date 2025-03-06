@@ -85,7 +85,9 @@ func (i *Indexer) Add(files []string) error {
 		return fmt.Errorf("save blobs: %w", err)
 	}
 
-	i.clean(files, indexEntries, parents)
+	if len(indexEntries) > 0 {
+		i.clean(files, indexEntries, parents)
+	}
 
 	for _, e := range entries {
 		stat, err := i.fs.Stat(e.AbsFilePath)
@@ -140,6 +142,11 @@ func (i *Indexer) LoadEntries() (Entries, map[string][]*Entry, error) {
 
 	indexFile, err := i.fs.Open(i.indexFilePath)
 	if err != nil {
+		// this is valid case when user is adding files for the first time
+		if errors.Is(err, os.ErrNotExist) {
+			return make(Entries), make(map[string][]*Entry), nil
+		}
+
 		return nil, nil, fmt.Errorf("open index file %q: %w", i.indexFilePath, err)
 	}
 

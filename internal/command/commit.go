@@ -15,10 +15,17 @@ func NewCommitCmd(repository *repository.Repository) (*CommitCmd, error) {
 }
 
 func (c *CommitCmd) Run() ([]byte, error) {
-	cID, err := c.repository.Commit()
+	commit, err := c.repository.Commit()
 	if err != nil {
 		return nil, err
 	}
 
-	return []byte(fmt.Sprintf("[%s] Successfully committed changes\n", cID)), nil
+	ref, err := c.repository.Refs.CurrentRef()
+	if err != nil {
+		return nil, fmt.Errorf("read current ref: %w", err)
+	}
+
+	msg := fmt.Sprintf("[%s] (root-commit) %s] %s", ref, commit.OID[0:7], commit.Message)
+
+	return []byte(fmt.Sprintf(msg)), nil
 }

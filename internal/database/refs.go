@@ -61,7 +61,7 @@ func (r *Refs) UpdateHead(commitID string) error {
 		return errors.New("commit id is empty")
 	}
 
-	currentRef, err := r.parseCurrentRef()
+	currentRef, err := r.CurrentRef()
 	if err != nil {
 		return fmt.Errorf("parse current ref: %w", err)
 	}
@@ -75,8 +75,8 @@ func (r *Refs) UpdateHead(commitID string) error {
 	return nil
 }
 
-func (r *Refs) Current() (string, error) {
-	currentRef, err := r.parseCurrentRef()
+func (r *Refs) ReadHead() (string, error) {
+	currentRef, err := r.CurrentRef()
 	if err != nil {
 		return "", fmt.Errorf("parse current ref: %w", err)
 	}
@@ -100,8 +100,9 @@ func (r *Refs) Current() (string, error) {
 	return strings.TrimSpace(string(currentCID)), nil
 }
 
-// TODO: parseCurrentRef() unconditionally replaces "ref: refs/heads/" with an empty string, which assumes HEAD is always a symbolic reference.
-func (r *Refs) parseCurrentRef() (string, error) {
+// CurrentRef
+// TODO: CurrentRef() unconditionally replaces "ref: refs/heads/" with an empty string, which assumes HEAD is always a symbolic reference.
+func (r *Refs) CurrentRef() (string, error) {
 	refs, err := r.fs.ReadFile(r.headFilePath)
 	if err != nil {
 		return "", fmt.Errorf("read refs: %w", err)
