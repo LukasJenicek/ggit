@@ -45,7 +45,7 @@ func TestAddEntryToIndex(t *testing.T) {
 	err = idx.Add([]string{"hello.txt", "world.txt"})
 	require.NoError(t, err)
 
-	entries, _, err := idx.LoadIndex()
+	entries, _, err := idx.LoadEntries()
 	require.NoError(t, err)
 
 	entriesNames := make([]string, len(entries))
@@ -101,7 +101,7 @@ func TestReplacesFileWithDirectory(t *testing.T) {
 	err = idx.Add([]string{"hello.txt", "world.txt/world.txt"})
 	require.NoError(t, err)
 
-	entries, parents, err := idx.LoadIndex()
+	entries, parents, err := idx.LoadEntries()
 	require.NoError(t, err)
 
 	entriesNames := make([]string, len(entries))
@@ -157,7 +157,7 @@ func TestReplacesDirectoryWithFile(t *testing.T) {
 	err = idx.Add([]string{"hello.txt"})
 	require.NoError(t, err)
 
-	entries, parents, err := idx.LoadIndex()
+	entries, parents, err := idx.LoadEntries()
 	require.NoError(t, err)
 
 	entriesNames := make([]string, len(entries))
