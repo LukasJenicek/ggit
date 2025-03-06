@@ -72,8 +72,7 @@ func NewIndexer(
 	}, nil
 }
 
-// Add
-// adding files to git index
+// adding files to git index.
 func (i *Indexer) Add(files []string) error {
 	if err := i.createIndexFile(); err != nil {
 		return fmt.Errorf("create index file: %w", err)
@@ -177,8 +176,13 @@ func (i *Indexer) LoadIndex() (Entries, map[string][]*Entry, error) {
 		}
 
 		dir, _ := filepath.Split(string(entry.Path))
+
 		parentsFolderPaths := strings.Split(dir, string(os.PathSeparator))
 		for i, parentsFolderPath := range parentsFolderPaths {
+			if parentsFolderPath == "" {
+				continue
+			}
+
 			p := parentsFolderPath
 			if i > 0 {
 				p = strings.Join(parentsFolderPaths[:i+1], string(os.PathSeparator))
@@ -186,10 +190,10 @@ func (i *Indexer) LoadIndex() (Entries, map[string][]*Entry, error) {
 
 			_, ok := parents[p]
 			if !ok {
-				parents[parentsFolderPath] = make([]*Entry, 0)
+				parents[p] = make([]*Entry, 0)
 			}
 
-			parents[parentsFolderPath] = append(parents[parentsFolderPath], entry)
+			parents[p] = append(parents[parentsFolderPath], entry)
 		}
 
 		entries[string(entry.Path)] = entry
@@ -200,7 +204,6 @@ func (i *Indexer) LoadIndex() (Entries, map[string][]*Entry, error) {
 		}
 
 		cursorPos--
-
 		currPosition = cursorPos
 	}
 
@@ -211,9 +214,6 @@ func (i *Indexer) LoadIndex() (Entries, map[string][]*Entry, error) {
 func (i *Indexer) cleanIndex(filePaths []string, indexEntries Entries, parents map[string][]*Entry) {
 	for _, filePath := range filePaths {
 		filepathParts := strings.Split(filePath, string(os.PathSeparator))
-		if len(filepathParts) == 1 {
-			continue
-		}
 
 		for i, fPart := range filepathParts {
 			part := fPart
@@ -222,14 +222,15 @@ func (i *Indexer) cleanIndex(filePaths []string, indexEntries Entries, parents m
 			}
 
 			delete(indexEntries, part)
-		}
 
-		// if new file conflicts with existing folder
-		// all files within that folder must be deleted
-		if _, ok := parents[filePath]; ok {
-			for _, entry := range parents[filePath] {
-				delete(indexEntries, string(entry.Path))
-				delete(parents, filePath)
+			// if new file conflicts with existing folder
+			// all files within that folder must be deleted
+			if _, ok := parents[part]; ok {
+				for _, entry := range parents[part] {
+					delete(indexEntries, string(entry.Path))
+				}
+
+				delete(parents, part)
 			}
 		}
 	}

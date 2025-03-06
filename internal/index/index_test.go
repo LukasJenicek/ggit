@@ -6,11 +6,12 @@ import (
 	"testing"
 	"testing/fstest"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/LukasJenicek/ggit/internal/database"
 	"github.com/LukasJenicek/ggit/internal/filesystem"
 	"github.com/LukasJenicek/ggit/internal/filesystem/memory"
 	"github.com/LukasJenicek/ggit/internal/index"
-	"github.com/stretchr/testify/require"
 )
 
 func TestAddEntryToIndex(t *testing.T) {
@@ -23,12 +24,12 @@ func TestAddEntryToIndex(t *testing.T) {
 		},
 		"tmp/test/hello.txt": &fstest.MapFile{
 			Data: []byte("hello"),
-			Mode: 0644,
-			Sys:  defaultStat(uint32(0644), 6),
+			Mode: 0o644,
+			Sys:  defaultStat(uint32(0o644), 6),
 		},
 		"tmp/test/world.txt": &fstest.MapFile{
 			Data: []byte("world"),
-			Sys:  defaultStat(uint32(0644), 6),
+			Sys:  defaultStat(uint32(0o644), 6),
 		},
 	})
 	locker := filesystem.NewFileLocker(fs)
@@ -55,7 +56,7 @@ func TestAddEntryToIndex(t *testing.T) {
 	require.EqualValues(t, []string{"hello.txt", "world.txt"}, entriesNames)
 }
 
-func TestReplacesFileWithADirectory(t *testing.T) {
+func TestReplacesFileWithDirectory(t *testing.T) {
 	rootDir := "tmp/test"
 	mapFS := fstest.MapFS{
 		"tmp/test": &fstest.MapFile{
@@ -64,12 +65,12 @@ func TestReplacesFileWithADirectory(t *testing.T) {
 		},
 		"tmp/test/hello.txt": &fstest.MapFile{
 			Data: []byte("hello"),
-			Mode: 0644,
-			Sys:  defaultStat(uint32(0644), 6),
+			Mode: 0o644,
+			Sys:  defaultStat(uint32(0o644), 6),
 		},
 		"tmp/test/world.txt": &fstest.MapFile{
 			Data: []byte("world"),
-			Sys:  defaultStat(uint32(0644), 6),
+			Sys:  defaultStat(uint32(0o644), 6),
 		},
 	}
 
@@ -94,13 +95,13 @@ func TestReplacesFileWithADirectory(t *testing.T) {
 
 	mapFS["tmp/test/world.txt/world.txt"] = &fstest.MapFile{
 		Data: []byte("world"),
-		Sys:  defaultStat(uint32(0644), 6),
+		Sys:  defaultStat(uint32(0o644), 6),
 	}
 
 	err = idx.Add([]string{"hello.txt", "world.txt/world.txt"})
 	require.NoError(t, err)
 
-	entries, _, err := idx.LoadIndex()
+	entries, parents, err := idx.LoadIndex()
 	require.NoError(t, err)
 
 	entriesNames := make([]string, len(entries))
@@ -109,9 +110,10 @@ func TestReplacesFileWithADirectory(t *testing.T) {
 	}
 
 	require.EqualValues(t, []string{"hello.txt", "world.txt/world.txt"}, entriesNames)
+	require.Len(t, parents, 1)
 }
 
-func TestReplacesDirectoryWithAFile(t *testing.T) {
+func TestReplacesDirectoryWithFile(t *testing.T) {
 	rootDir := "tmp/test"
 	mapFS := fstest.MapFS{
 		"tmp/test": &fstest.MapFile{
@@ -124,12 +126,12 @@ func TestReplacesDirectoryWithAFile(t *testing.T) {
 		},
 		"tmp/test/hello.txt/hello.txt": &fstest.MapFile{
 			Data: []byte("hello"),
-			Mode: 0644,
-			Sys:  defaultStat(uint32(0644), 6),
+			Mode: 0o644,
+			Sys:  defaultStat(uint32(0o644), 6),
 		},
 		"tmp/test/world.txt": &fstest.MapFile{
 			Data: []byte("world"),
-			Sys:  defaultStat(uint32(0644), 6),
+			Sys:  defaultStat(uint32(0o644), 6),
 		},
 	}
 
@@ -149,7 +151,7 @@ func TestReplacesDirectoryWithAFile(t *testing.T) {
 
 	mapFS["tmp/test/hello.txt"] = &fstest.MapFile{
 		Data: []byte("hello"),
-		Sys:  defaultStat(uint32(0644), 6),
+		Sys:  defaultStat(uint32(0o644), 6),
 	}
 
 	err = idx.Add([]string{"hello.txt"})
@@ -164,6 +166,7 @@ func TestReplacesDirectoryWithAFile(t *testing.T) {
 	}
 
 	require.EqualValues(t, []string{"hello.txt", "world.txt"}, entriesNames)
+	require.Empty(t, parents)
 }
 
 func defaultStat(mode uint32, size int64) *syscall.Stat_t {
