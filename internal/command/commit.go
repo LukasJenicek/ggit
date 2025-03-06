@@ -1,9 +1,10 @@
 package command
 
 import (
+	"errors"
 	"fmt"
-
 	"github.com/LukasJenicek/ggit/internal/repository"
+	"io"
 )
 
 type CommitCmd struct {
@@ -33,4 +34,20 @@ func (c *CommitCmd) Run() ([]byte, error) {
 	msg := fmt.Sprintf("[%s (%s) %s] %s", ref, m, commit.OID[0:7], commit.Message)
 
 	return []byte(msg), nil
+}
+
+func (c *CommitCmd) Output(msg []byte, err error, stdout io.Writer) (int, error) {
+	if err != nil {
+		if errors.Is(err, repository.ErrNoFilesToCommit) {
+			fmt.Fprintf(stdout, "%s", err.Error())
+
+			return 1, nil
+		}
+
+		return 1, fmt.Errorf("commit cmd: %w", err)
+	}
+
+	fmt.Fprintf(stdout, string(msg))
+
+	return 0, nil
 }

@@ -22,12 +22,12 @@ func NewRunner(repo *repository.Repository) *Runner {
 // RunCmd (osExit, err).
 func (r *Runner) RunCmd(ctx context.Context, cmd string, args []string, output io.Writer) (int, error) {
 	switch cmd {
-	case "init":
-		return r.initCmd(output)
-	case "commit":
-		return r.commitCmd(output)
 	case "add":
 		return r.addCmd(args, output)
+	case "commit":
+		return r.commitCmd(output)
+	case "init":
+		return r.initCmd(output)
 	}
 
 	return 1, fmt.Errorf("ggit: %q is not a ggit command. See 'ggit --help'", cmd)
@@ -40,19 +40,8 @@ func (r *Runner) commitCmd(output io.Writer) (int, error) {
 	}
 
 	out, err := cmd.Run()
-	if err != nil {
-		if errors.Is(err, repository.ErrNoFilesToCommit) {
-			fmt.Fprintf(output, "%s", err.Error())
 
-			return 1, nil
-		}
-
-		return 1, fmt.Errorf("commit cmd: %w", err)
-	}
-
-	fmt.Fprintf(output, "%s", string(out))
-
-	return 0, nil
+	return cmd.Output(out, err, output)
 }
 
 func (r *Runner) addCmd(args []string, output io.Writer) (int, error) {
