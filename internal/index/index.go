@@ -75,10 +75,6 @@ func NewIndexer(
 // Add
 // Start tracking files using .git/index.
 func (i *Indexer) Add(files []string) error {
-	if err := i.createIndexFile(); err != nil {
-		return fmt.Errorf("create index file: %w", err)
-	}
-
 	indexEntries, parents, err := i.LoadEntries()
 	if err != nil {
 		return fmt.Errorf("load index: %w", err)
@@ -89,17 +85,17 @@ func (i *Indexer) Add(files []string) error {
 		return fmt.Errorf("save blobs: %w", err)
 	}
 
-	i.cleanIndex(files, indexEntries, parents)
+	i.clean(files, indexEntries, parents)
 
 	for _, e := range entries {
-		fInfo, err := i.fs.Stat(e.Filepath)
+		stat, err := i.fs.Stat(e.AbsFilePath)
 		if err != nil {
-			return fmt.Errorf("stat %s: %w", e.Filepath, err)
+			return fmt.Errorf("stat %s: %w", e.AbsFilePath, err)
 		}
 
 		relFilePath := e.GetRelativeFilePath(i.rootDir)
 
-		indexEntry, err := NewEntry(relFilePath, fInfo, e.OID)
+		indexEntry, err := NewEntry(relFilePath, stat, e.OID)
 		if err != nil {
 			return fmt.Errorf("new index entry: %w", err)
 		}
@@ -110,6 +106,10 @@ func (i *Indexer) Add(files []string) error {
 	indexContent, err := i.content.Generate(indexEntries.SortedValues())
 	if err != nil {
 		return fmt.Errorf("index content: %w", err)
+	}
+
+	if err := i.createIndexFile(); err != nil {
+		return fmt.Errorf("create index file: %w", err)
 	}
 
 	if err = i.fileWriter.Write(i.indexFilePath, indexContent); err != nil {
@@ -221,7 +221,7 @@ func (i *Indexer) LoadEntries() (Entries, map[string][]*Entry, error) {
 //
 // when added directory name conflicts with existing file
 // that file must be deleted
-func (i *Indexer) cleanIndex(filePaths []string, indexEntries Entries, parents map[string][]*Entry) {
+func (i *Indexer) clean(filePaths []string, indexEntries Entries, parents map[string][]*Entry) {
 	for _, filePath := range filePaths {
 		filepathParts := strings.Split(filePath, string(os.PathSeparator))
 

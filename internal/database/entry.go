@@ -10,13 +10,13 @@ type Entry struct {
 	// Name of the file
 	Name string
 	// Absolute filepath
-	Filepath string
+	AbsFilePath string
 	// Calculated object id
 	OID        []byte
 	Executable bool
 }
 
-func NewEntry(filename string, filepath string, oid []byte, executable bool) (*Entry, error) {
+func NewEntry(filename string, absFilePath string, oid []byte, executable bool) (*Entry, error) {
 	if strings.TrimSpace(filename) == "" {
 		return nil, errors.New("entry filename cannot be empty")
 	}
@@ -26,15 +26,15 @@ func NewEntry(filename string, filepath string, oid []byte, executable bool) (*E
 	}
 
 	return &Entry{
-		Name:       filename,
-		Filepath:   filepath,
-		OID:        oid,
-		Executable: executable,
+		Name:        filename,
+		AbsFilePath: absFilePath,
+		OID:         oid,
+		Executable:  executable,
 	}, nil
 }
 
 func (e *Entry) GetRelativeFilePath(rootDir string) string {
-	return strings.Replace(e.Filepath, rootDir+"/", "", 1)
+	return strings.Replace(e.AbsFilePath, rootDir+"/", "", 1)
 }
 
 func (e *Entry) Content() ([]byte, error) {

@@ -102,6 +102,7 @@ remove the file manually to continue.`
 				filepath.Join(r.repository.GitPath, "index.lock"),
 			)
 			fmt.Fprintf(output, help)
+			return 128, nil
 		}
 
 		return 1, fmt.Errorf("add files: %w", err)
