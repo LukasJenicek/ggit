@@ -121,12 +121,7 @@ func (i *Indexer) Add(files []string) error {
 	return nil
 }
 
-// LoadEntries
-// Load existing entries from .git/index file
-//
-// Two structures are returned
-// map[string]*Entry
-// map[string][]*Entry: To make name conflict resolution easier when newly added filename conflicts with existing dir
+// map[string][]*Entry: To make name conflict resolution easier when newly added filename conflicts with existing dir.
 func (i *Indexer) LoadEntries() (Entries, map[string][]*Entry, error) {
 	lock, err := i.locker.Lock(i.indexFilePath)
 	if err != nil {
@@ -221,13 +216,7 @@ func (i *Indexer) LoadEntries() (Entries, map[string][]*Entry, error) {
 	return entries, parents, nil
 }
 
-// resolve filename conflicts
-//
-// when added file conflicts with existing folder
-// all files within that directory and all sub directories must be deleted
-//
-// when added directory name conflicts with existing file
-// that file must be deleted
+// that file must be deleted.
 func (i *Indexer) clean(filePaths []string, indexEntries Entries, parents map[string][]*Entry) {
 	for _, filePath := range filePaths {
 		filepathParts := strings.Split(filePath, string(os.PathSeparator))
