@@ -40,6 +40,7 @@ func main() {
 	}
 
 	runner := command.NewRunner(repo)
+
 	osExit, err := runner.RunCmd(ctx, cmd, os.Args[2:], os.Stdout)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)

@@ -29,7 +29,8 @@ func (c *CommitCmd) Run() ([]byte, error) {
 	if commit.Parent == "" {
 		m = "root-commit"
 	}
-	msg := fmt.Sprintf("[%s] (%s) %s] %s", ref, m, commit.OID[0:7], commit.Message)
 
-	return []byte(fmt.Sprintf(msg)), nil
+	msg := fmt.Sprintf("[%s (%s) %s] %s", ref, m, commit.OID[0:7], commit.Message)
+
+	return []byte(msg), nil
 }
