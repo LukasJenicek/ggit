@@ -72,13 +72,14 @@ func NewIndexer(
 	}, nil
 }
 
-// adding files to git index.
+// Add
+// Start tracking files using .git/index.
 func (i *Indexer) Add(files []string) error {
 	if err := i.createIndexFile(); err != nil {
 		return fmt.Errorf("create index file: %w", err)
 	}
 
-	indexEntries, parents, err := i.LoadIndex()
+	indexEntries, parents, err := i.LoadEntries()
 	if err != nil {
 		return fmt.Errorf("load index: %w", err)
 	}
@@ -96,14 +97,14 @@ func (i *Indexer) Add(files []string) error {
 			return fmt.Errorf("stat %s: %w", e.Filepath, err)
 		}
 
-		relativeFilePath := e.GetRelativeFilePath(i.rootDir)
+		relFilePath := e.GetRelativeFilePath(i.rootDir)
 
-		indexEntry, err := NewEntry(relativeFilePath, fInfo, e.OID)
+		indexEntry, err := NewEntry(relFilePath, fInfo, e.OID)
 		if err != nil {
 			return fmt.Errorf("new index entry: %w", err)
 		}
 
-		indexEntries[relativeFilePath] = indexEntry
+		indexEntries[relFilePath] = indexEntry
 	}
 
 	indexContent, err := i.content.Generate(indexEntries.SortedValues())
@@ -118,10 +119,13 @@ func (i *Indexer) Add(files []string) error {
 	return nil
 }
 
-// LoadIndex
-// TODO: Determine handling strategy when no files are added to the index.
-// Options: return error, create empty index, or maintain current behavior.
-func (i *Indexer) LoadIndex() (Entries, map[string][]*Entry, error) {
+// LoadEntries
+// Load existing entries from .git/index file
+//
+// Two structures are returned
+// map[string]*Entry
+// map[string][]*Entry: To make name conflict resolution easier when newly added filename conflicts with existing dir
+func (i *Indexer) LoadEntries() (Entries, map[string][]*Entry, error) {
 	lock, err := i.locker.Lock(i.indexFilePath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("lock index: %w", err)
@@ -210,7 +214,13 @@ func (i *Indexer) LoadIndex() (Entries, map[string][]*Entry, error) {
 	return entries, parents, nil
 }
 
-// hello.txt/world.txt and hello.txt file can't coexist in the same index.
+// resolve filename conflicts
+//
+// when added file conflicts with existing folder
+// all files within that directory and all sub directories must be deleted
+//
+// when added directory name conflicts with existing file
+// that file must be deleted
 func (i *Indexer) cleanIndex(filePaths []string, indexEntries Entries, parents map[string][]*Entry) {
 	for _, filePath := range filePaths {
 		filepathParts := strings.Split(filePath, string(os.PathSeparator))
@@ -236,7 +246,6 @@ func (i *Indexer) cleanIndex(filePaths []string, indexEntries Entries, parents m
 	}
 }
 
-// create .git/index file if does not exist.
 func (i *Indexer) createIndexFile() error {
 	_, err := i.fs.Stat(i.indexFilePath)
 	if err != nil {

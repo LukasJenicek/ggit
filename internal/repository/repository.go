@@ -115,9 +115,11 @@ func (r *Repository) Init() error {
 	}
 
 	for _, path := range dirs {
-		err := r.FS.Mkdir(filepath.Join(r.RootDir, path), os.ModePerm)
+		absPath := filepath.Join(r.RootDir, path)
+
+		err := r.FS.Mkdir(absPath, os.ModePerm)
 		if err != nil {
-			return fmt.Errorf("create %s directory: %w", path, err)
+			return fmt.Errorf("create %s directory: %w", absPath, err)
 		}
 	}
 
@@ -155,7 +157,7 @@ func (r *Repository) Add(paths []string) error {
 }
 
 func (r *Repository) Commit() (string, error) {
-	indexEntries, _, err := r.Indexer.LoadIndex()
+	indexEntries, _, err := r.Indexer.LoadEntries()
 	if err != nil {
 		return "", fmt.Errorf("load index: %w", err)
 	}

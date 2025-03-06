@@ -38,12 +38,12 @@ func (r *Runner) RunCmd(ctx context.Context, cmd string, args []string, output i
 }
 
 func (r *Runner) commitCmd(output io.Writer) (int, error) {
-	commitCmd, err := NewCommitCmd(r.repository)
+	cmd, err := NewCommitCmd(r.repository)
 	if err != nil {
 		return 1, fmt.Errorf("init commit cmd: %w", err)
 	}
 
-	out, err := commitCmd.Run()
+	out, err := cmd.Run()
 	if err != nil {
 		if errors.Is(err, repository.ErrNoFilesToCommit) {
 			fmt.Fprintf(output, "%s", err.Error())
@@ -61,20 +61,22 @@ func (r *Runner) commitCmd(output io.Writer) (int, error) {
 
 func (r *Runner) addCmd(args []string, output io.Writer) (int, error) {
 	if len(args) == 0 {
-		fmt.Fprintf(output, "usage: %s add <pattern>\n", "add")
-		fmt.Fprintf(output, "Examples:\n")
-		fmt.Fprintf(output, "  Add single file: ggit add file.txt\n")
-		fmt.Fprintf(output, "  Add using glob pattern: ggit add \"*.go\"\n")
+		help := `Usage: ggit add <pattern>
+Examples:
+	Add single file: ggit add file.txt
+	Add using glob pattern: ggit add *.go
+`
+		fmt.Fprintf(output, help)
 
 		return 0, nil
 	}
 
-	addCmd, err := NewAddCommand(args, r.repository)
+	cmd, err := NewAddCommand(args, r.repository)
 	if err != nil {
 		return 1, fmt.Errorf("init add command: %w", err)
 	}
 
-	out, err := addCmd.Run()
+	out, err := cmd.Run()
 	if err != nil {
 		var cErr *workspace.ErrPathNotMatched
 		if errors.As(err, &cErr) {
@@ -96,7 +98,7 @@ may have crashed in this repository earlier:
 remove the file manually to continue.`
 			fmt.Fprintf(
 				output,
-				"fatal: Unable to create %s: File exists",
+				"fatal: Unable to create %s: File exists\n",
 				filepath.Join(r.repository.GitPath, "index.lock"),
 			)
 			fmt.Fprintf(output, help)
@@ -111,12 +113,12 @@ remove the file manually to continue.`
 }
 
 func (r *Runner) initCmd(output io.Writer) (int, error) {
-	initCommand, err := NewInitCommand(r.repository)
+	cmd, err := NewInitCommand(r.repository)
 	if err != nil {
 		return 1, fmt.Errorf("init command: %w", err)
 	}
 
-	out, err := initCommand.Run()
+	out, err := cmd.Run()
 	if err != nil {
 		if errors.Is(err, ErrRepositoryAlreadyInitialized) {
 			fmt.Fprintf(output, "Reinitialized existing Git repository in %s", r.repository.GitPath)
