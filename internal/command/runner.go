@@ -75,8 +75,7 @@ func (r *Runner) addCmd(args []string, output io.Writer) (int, error) {
 	if err != nil {
 		var cErr *workspace.ErrPathNotMatched
 		if errors.As(err, &cErr) {
-			fmt.Fprintf(output, "%s", err.Error())
-
+			fmt.Fprintf(output, "%s", cErr.Error())
 			return 128, nil
 		}
 
