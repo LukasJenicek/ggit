@@ -51,7 +51,7 @@ Examples:
 	Add single file: ggit add file.txt
 	Add using glob pattern: ggit add *.go
 `
-		fmt.Fprint(output, "%s", help)
+		fmt.Fprint(output, help)
 
 		return 0, nil
 	}
