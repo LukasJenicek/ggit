@@ -3,6 +3,7 @@ package command
 import (
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/LukasJenicek/ggit/internal/repository"
 )
@@ -35,4 +36,20 @@ func (i *InitCommand) Run() ([]byte, error) {
 	msg := "Initialized empty Git repository in " + i.repository.GitPath
 
 	return []byte(msg), nil
+}
+
+func (i *InitCommand) Output(msg []byte, err error, stdout io.Writer) (int, error) {
+	if err != nil {
+		if errors.Is(err, ErrRepositoryAlreadyInitialized) {
+			fmt.Fprintf(stdout, "Reinitialized existing Git repository in %s", i.repository.GitPath)
+
+			return 0, nil
+		}
+
+		return 1, fmt.Errorf("run init: %w", err)
+	}
+
+	fmt.Fprintf(stdout, string(msg))
+
+	return 0, nil
 }
