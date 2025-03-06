@@ -18,6 +18,41 @@ import (
 	"github.com/LukasJenicek/ggit/internal/repository"
 )
 
+func TestAddNonExistentFile(t *testing.T) {
+	t.Parallel()
+
+	fs := fstest.MapFS{
+		"tmp/test/": &fstest.MapFile{
+			Mode: os.ModeDir,
+		},
+		"tmp/test/world.txt": &fstest.MapFile{
+			Data: []byte("world"),
+			Mode: 0o644,
+			Sys:  defaultStat(uint32(0o644), 6),
+		},
+	}
+
+	repo, err := repository.New(
+		memory.New(fs),
+		clock.NewFakeClock(time.Date(2000, 12, 15, 17, 8, 0o0, 0, time.UTC)),
+		"tmp/test",
+	)
+	require.NoError(t, err)
+
+	initCmd, err := command.NewInitCommand(repo)
+	require.NoError(t, err)
+
+	_, err = initCmd.Run()
+	require.NoError(t, err)
+
+	cmd, err := command.NewAddCommand([]string{"whatever.txt"}, repo)
+	require.NoError(t, err)
+
+	_, err = cmd.Run()
+	require.Error(t, err)
+	require.Errorf(t, err, "fatal: pathspec \"whatever\" did not match any files")
+}
+
 func TestAddFilesNameConflict(t *testing.T) {
 	t.Parallel()
 
@@ -27,30 +62,8 @@ func TestAddFilesNameConflict(t *testing.T) {
 		},
 		"tmp/test/world.txt": &fstest.MapFile{
 			Data: []byte("world"),
-			Mode: 33204,
-			Sys: &syscall.Stat_t{
-				Dev:     66306,
-				Ino:     26874043,
-				Nlink:   1,
-				Mode:    33204,
-				Uid:     1000,
-				Gid:     1000,
-				Size:    6,
-				Blksize: 4096,
-				Blocks:  8,
-				Atim: syscall.Timespec{
-					Sec:  1740497047,
-					Nsec: 592315384,
-				},
-				Mtim: syscall.Timespec{
-					Sec:  1739287401,
-					Nsec: 888108884,
-				},
-				Ctim: syscall.Timespec{
-					Sec:  1739287401,
-					Nsec: 888108884,
-				},
-			},
+			Mode: 0o644,
+			Sys:  defaultStat(uint32(0o644), 6),
 		},
 	}
 
@@ -79,32 +92,9 @@ func TestAddFilesNameConflict(t *testing.T) {
 
 	fs["tmp/test/hello.txt/world.txt"] = &fstest.MapFile{
 		Data: []byte("world"),
-		Mode: 33204,
-		Sys: &syscall.Stat_t{
-			Dev:     66306,
-			Ino:     26874043,
-			Nlink:   1,
-			Mode:    33204,
-			Uid:     1000,
-			Gid:     1000,
-			Size:    6,
-			Blksize: 4096,
-			Blocks:  8,
-			Atim: syscall.Timespec{
-				Sec:  1740497047,
-				Nsec: 592315384,
-			},
-			Mtim: syscall.Timespec{
-				Sec:  1739287401,
-				Nsec: 888108884,
-			},
-			Ctim: syscall.Timespec{
-				Sec:  1739287401,
-				Nsec: 888108884,
-			},
-		},
+		Mode: 0o644,
+		Sys:  defaultStat(uint32(0o644), 6),
 	}
-
 	cmd, err = command.NewAddCommand([]string{"."}, repo)
 	require.NoError(t, err)
 
@@ -150,58 +140,12 @@ func TestAddFiles(t *testing.T) {
 		"tmp/test/hello.txt": &fstest.MapFile{
 			Data: []byte("hello"),
 			Mode: 0o644,
-			Sys: &syscall.Stat_t{
-				Dev:     66306,
-				Ino:     26874043,
-				Nlink:   1,
-				Mode:    33204,
-				Uid:     1000,
-				Gid:     1000,
-				X__pad0: 0,
-				Rdev:    0,
-				Size:    7,
-				Blksize: 4096,
-				Blocks:  8,
-				Atim: syscall.Timespec{
-					Sec:  1740497047,
-					Nsec: 592315384,
-				},
-				Mtim: syscall.Timespec{
-					Sec:  1739287401,
-					Nsec: 888108884,
-				},
-				Ctim: syscall.Timespec{
-					Sec:  1739287401,
-					Nsec: 888108884,
-				},
-			},
+			Sys:  defaultStat(uint32(0o644), 6),
 		},
 		"tmp/test/world.txt": &fstest.MapFile{
 			Data: []byte("world"),
-			Mode: 33204,
-			Sys: &syscall.Stat_t{
-				Dev:     66306,
-				Ino:     26874043,
-				Nlink:   1,
-				Mode:    33204,
-				Uid:     1000,
-				Gid:     1000,
-				Size:    6,
-				Blksize: 4096,
-				Blocks:  8,
-				Atim: syscall.Timespec{
-					Sec:  1740497047,
-					Nsec: 592315384,
-				},
-				Mtim: syscall.Timespec{
-					Sec:  1739287401,
-					Nsec: 888108884,
-				},
-				Ctim: syscall.Timespec{
-					Sec:  1739287401,
-					Nsec: 888108884,
-				},
-			},
+			Mode: 0o644,
+			Sys:  defaultStat(uint32(0o644), 6),
 		},
 	}
 
@@ -251,6 +195,23 @@ func TestAddFiles(t *testing.T) {
 	expectedContent = append(expectedContent, oid...)
 
 	require.EqualValues(t, expectedContent, content)
+}
+
+func defaultStat(mode uint32, size int64) *syscall.Stat_t {
+	return &syscall.Stat_t{
+		Dev:     66306,
+		Ino:     26874043,
+		Nlink:   1,
+		Mode:    mode,
+		Uid:     1000,
+		Gid:     1000,
+		Size:    size,
+		Blksize: 4096,
+		Blocks:  (size + 511) / 512, // Approximate block count
+		Atim:    syscall.Timespec{Sec: 1740497047, Nsec: 592315384},
+		Mtim:    syscall.Timespec{Sec: 1739287401, Nsec: 888108884},
+		Ctim:    syscall.Timespec{Sec: 1739287401, Nsec: 888108884},
+	}
 }
 
 func fileContent(t *testing.T, fs fstest.MapFS, filepath, filename string) ([]byte, error) {
