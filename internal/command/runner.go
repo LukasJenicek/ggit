@@ -2,7 +2,6 @@ package command
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 
@@ -73,17 +72,6 @@ func (r *Runner) initCmd(output io.Writer) (int, error) {
 	}
 
 	out, err := cmd.Run()
-	if err != nil {
-		if errors.Is(err, ErrRepositoryAlreadyInitialized) {
-			fmt.Fprintf(output, "Reinitialized existing Git repository in %s", r.repository.GitPath)
 
-			return 0, nil
-		}
-
-		return 1, fmt.Errorf("run init: %w", err)
-	}
-
-	fmt.Fprintf(output, "%s", string(out))
-
-	return 0, nil
+	return cmd.Output(out, err, output)
 }
