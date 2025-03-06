@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/LukasJenicek/ggit/internal/filesystem"
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/LukasJenicek/ggit/internal/repository"
 	"github.com/LukasJenicek/ggit/internal/workspace"
@@ -84,6 +86,20 @@ func (r *Runner) addCmd(args []string, output io.Writer) (int, error) {
 			fmt.Fprintf(output, "error: permission denied\n")
 			fmt.Fprintf(output, "fatal: adding files failed")
 			return 128, nil
+		}
+
+		if errors.Is(err, filesystem.ErrLockAcquired) {
+			help := `Another git process seems to be running in this repository, e.g.
+an editor opened by 'git commit'. Please make sure all processes
+are terminated then try again. If it still fails, a git process
+may have crashed in this repository earlier:
+remove the file manually to continue.`
+			fmt.Fprintf(
+				output,
+				"fatal: Unable to create %s: File exists",
+				filepath.Join(r.repository.GitPath, "index.lock"),
+			)
+			fmt.Fprintf(output, help)
 		}
 
 		return 1, fmt.Errorf("add files: %w", err)
