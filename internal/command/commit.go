@@ -25,7 +25,11 @@ func (c *CommitCmd) Run() ([]byte, error) {
 		return nil, fmt.Errorf("read current ref: %w", err)
 	}
 
-	msg := fmt.Sprintf("[%s] (root-commit) %s] %s", ref, commit.OID[0:7], commit.Message)
+	m := ""
+	if commit.Parent == "" {
+		m = "root-commit"
+	}
+	msg := fmt.Sprintf("[%s] (%s) %s] %s", ref, m, commit.OID[0:7], commit.Message)
 
 	return []byte(fmt.Sprintf(msg)), nil
 }
