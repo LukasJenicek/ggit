@@ -16,6 +16,9 @@ func NewStatusCommand(repo *repository.Repository) (*StatusCommand, error) {
 	return &StatusCommand{repo}, nil
 }
 
+// Run
+// It shows a summary of the differences between the tree of the HEAD commit, the entries in the index, and
+// the contents of the workspace, as well as listing conflicting files during a merge
 func (s *StatusCommand) Run() ([]byte, error) {
 	files, err := s.repo.Workspace.ListFiles()
 	if err != nil {
@@ -28,12 +31,16 @@ func (s *StatusCommand) Run() ([]byte, error) {
 	}
 
 	buf := bytes.NewBuffer(nil)
+	untrackedFiles := []string{}
+	trackedFiles := []string{}
 
 	for _, f := range files {
 		if _, ok := entries[f]; ok {
+			trackedFiles = append(trackedFiles, f)
 			continue
 		}
 
+		untrackedFiles = append(untrackedFiles, f)
 		buf.WriteString(fmt.Sprintf("?? %s\n", f))
 	}
 
@@ -45,7 +52,7 @@ func (s *StatusCommand) Output(msg []byte, err error, stdout io.Writer) (int, er
 		return 1, fmt.Errorf("output: %w", err)
 	}
 
-	fmt.Fprint(stdout, "%s", string(msg))
+	fmt.Fprint(stdout, string(msg))
 
 	return 0, nil
 }
