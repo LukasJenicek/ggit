@@ -1,7 +1,9 @@
 package workspace_test
 
 import (
+	"maps"
 	"os"
+	"sort"
 	"testing"
 	"testing/fstest"
 
@@ -11,7 +13,58 @@ import (
 	"github.com/LukasJenicek/ggit/internal/workspace"
 )
 
-func TestWorkspace(t *testing.T) {
+func TestWorkspace_ListDir(t *testing.T) {
+	t.Parallel()
+
+	fsys := fstest.MapFS{
+		"tmp/testdata/": &fstest.MapFile{
+			Mode: os.ModeDir,
+		},
+		"tmp/testdata/a.txt": &fstest.MapFile{
+			Data: []byte("a"),
+			Mode: 0o644,
+		},
+		"tmp/testdata/b.txt": &fstest.MapFile{
+			Data: []byte("b"),
+			Mode: 0o644,
+		},
+		"tmp/testdata/internal/": &fstest.MapFile{
+			Mode: os.ModeDir,
+		},
+		"tmp/testdata/internal/a.txt": &fstest.MapFile{
+			Data: []byte("a"),
+		},
+		"tmp/testdata/internal/b.txt": &fstest.MapFile{
+			Data: []byte("b"),
+		},
+		"tmp/testdata/internal/memory/": &fstest.MapFile{
+			Mode: os.ModeDir,
+		},
+		"tmp/testdata/internal/memory/memory.go": &fstest.MapFile{
+			Data: []byte("func main(){ os.Exit(0) }"),
+		},
+	}
+
+	w, err := workspace.New("tmp/testdata", memory.New(fsys))
+	require.NoError(t, err)
+
+	stats, err := w.ListDir("internal")
+	require.NoError(t, err)
+
+	outKeys := make([]string, 0, len(stats))
+	for key := range maps.Keys(stats) {
+		outKeys = append(outKeys, key)
+	}
+	sort.Strings(outKeys)
+
+	require.EqualValues(
+		t,
+		[]string{"internal/a.txt", "internal/b.txt", "internal/memory", "internal/memory/memory.go"},
+		outKeys,
+	)
+}
+
+func TestWorkspace_MatchFiles(t *testing.T) {
 	t.Parallel()
 
 	fsys := fstest.MapFS{
