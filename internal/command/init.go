@@ -49,7 +49,7 @@ func (i *InitCommand) Output(msg []byte, err error, stdout io.Writer) (int, erro
 		return 1, fmt.Errorf("run init: %w", err)
 	}
 
-	fmt.Fprint(stdout, "%s", string(msg))
+	fmt.Fprint(stdout, string(msg))
 
 	return 0, nil
 }
