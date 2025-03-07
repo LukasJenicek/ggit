@@ -17,8 +17,7 @@ func NewStatusCommand(repo *repository.Repository) (*StatusCommand, error) {
 }
 
 // Run
-// It shows a summary of the differences between the tree of the HEAD commit, the entries in the index, and
-// the contents of the workspace, as well as listing conflicting files during a merge
+// Shows difference between the tree of the HEAD commit, the entries in the index and workspace content
 func (s *StatusCommand) Run() ([]byte, error) {
 	files, err := s.repo.Workspace.ListFiles()
 	if err != nil {
