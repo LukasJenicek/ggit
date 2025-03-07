@@ -20,7 +20,7 @@ const (
 	maxPathSize    = 0xfff
 )
 
-type Indexer struct {
+type Index struct {
 	fs            filesystem.Fs
 	fileWriter    *filesystem.AtomicFileWriter
 	database      *database.Database
@@ -30,13 +30,13 @@ type Indexer struct {
 	rootDir       string
 }
 
-func NewIndexer(
+func NewIndex(
 	fs filesystem.Fs,
 	fileWriter *filesystem.AtomicFileWriter,
 	locker filesystem.Locker,
 	database *database.Database,
 	rootDir string,
-) (*Indexer, error) {
+) (*Index, error) {
 	if fs == nil {
 		return nil, errors.New("file system is nil")
 	}
@@ -57,7 +57,7 @@ func NewIndexer(
 		return nil, errors.New("root dir is empty")
 	}
 
-	return &Indexer{
+	return &Index{
 		fs:         fs,
 		fileWriter: fileWriter,
 		database:   database,
@@ -74,7 +74,7 @@ func NewIndexer(
 
 // Add
 // Start tracking files using .git/index.
-func (i *Indexer) Add(files []string) error {
+func (i *Index) Add(files []string) error {
 	indexEntries, parents, err := i.LoadEntries()
 	if err != nil {
 		return fmt.Errorf("load index: %w", err)
@@ -121,8 +121,9 @@ func (i *Indexer) Add(files []string) error {
 	return nil
 }
 
+// LoadEntries
 // map[string][]*Entry: To make name conflict resolution easier when newly added filename conflicts with existing dir.
-func (i *Indexer) LoadEntries() (Entries, map[string][]*Entry, error) {
+func (i *Index) LoadEntries() (Entries, map[string][]*Entry, error) {
 	lock, err := i.locker.Lock(i.indexFilePath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("lock index: %w", err)
@@ -217,7 +218,7 @@ func (i *Indexer) LoadEntries() (Entries, map[string][]*Entry, error) {
 }
 
 // that file must be deleted.
-func (i *Indexer) clean(filePaths []string, indexEntries Entries, parents map[string][]*Entry) {
+func (i *Index) clean(filePaths []string, indexEntries Entries, parents map[string][]*Entry) {
 	for _, filePath := range filePaths {
 		filepathParts := strings.Split(filePath, string(os.PathSeparator))
 
@@ -242,7 +243,7 @@ func (i *Indexer) clean(filePaths []string, indexEntries Entries, parents map[st
 	}
 }
 
-func (i *Indexer) createIndexFile() error {
+func (i *Index) createIndexFile() error {
 	_, err := i.fs.Stat(i.indexFilePath)
 	if err != nil {
 		if os.IsNotExist(err) {

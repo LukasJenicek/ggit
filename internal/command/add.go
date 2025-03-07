@@ -89,7 +89,7 @@ func (a *AddCommand) Output(msg []byte, err error, stdout io.Writer) (int, error
 		return 1, fmt.Errorf("add files: %w", err)
 	}
 
-	fmt.Fprintf(stdout, string(msg))
+	fmt.Fprint(stdout, "%s", string(msg))
 
 	return 0, nil
 }

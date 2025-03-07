@@ -27,9 +27,22 @@ func (r *Runner) RunCmd(ctx context.Context, cmd string, args []string, output i
 		return r.commitCmd(output)
 	case "init":
 		return r.initCmd(output)
+	case "status":
+		return r.statusCmd(output)
 	}
 
 	return 1, fmt.Errorf("ggit: %q is not a ggit command. See 'ggit --help'", cmd)
+}
+
+func (r *Runner) statusCmd(output io.Writer) (int, error) {
+	cmd, err := NewStatusCommand(r.repository)
+	if err != nil {
+		return 1, fmt.Errorf("init status cmd: %w", err)
+	}
+
+	out, err := cmd.Run()
+
+	return cmd.Output(out, err, output)
 }
 
 func (r *Runner) commitCmd(output io.Writer) (int, error) {

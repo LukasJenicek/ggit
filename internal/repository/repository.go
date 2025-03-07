@@ -23,9 +23,9 @@ var ErrNoFilesToCommit = errors.New("nothing added to commit (use 'ggit add' to 
 type Repository struct {
 	GitConfig *config.Config
 	Database  *database.Database
-	Index     *index.Indexer
-	Workspace *workspace.Workspace
+	Index     *index.Index
 	Refs      *database.Refs
+	Workspace *workspace.Workspace
 
 	// Important for unit testing
 	Clock clock.Clock
@@ -77,7 +77,7 @@ func New(fs filesystem.Fs, clock clock.Clock, cwd string) (*Repository, error) {
 		return nil, fmt.Errorf("init database: %w", err)
 	}
 
-	indexer, err := index.NewIndexer(fs, writer, locker, db, cwd)
+	indexer, err := index.NewIndex(fs, writer, locker, db, cwd)
 	if err != nil {
 		return nil, fmt.Errorf("init indexer: %w", err)
 	}
@@ -137,7 +137,7 @@ func (repo *Repository) Add(paths []string) error {
 	var files []string
 
 	for _, path := range paths {
-		f, err := repo.Workspace.ListFiles(path)
+		f, err := repo.Workspace.MatchFiles(path)
 		if err != nil {
 			return fmt.Errorf("list files: %w", err)
 		}

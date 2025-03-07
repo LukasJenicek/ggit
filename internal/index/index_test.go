@@ -39,7 +39,7 @@ func TestAddEntryToIndex(t *testing.T) {
 	db, err := database.New(fs, rootDir)
 	require.NoError(t, err)
 
-	idx, err := index.NewIndexer(fs, fileWriter, locker, db, rootDir)
+	idx, err := index.NewIndex(fs, fileWriter, locker, db, rootDir)
 	require.NoError(t, err)
 
 	err = idx.Add([]string{"hello.txt", "world.txt"})
@@ -82,7 +82,7 @@ func TestReplacesFileWithDirectory(t *testing.T) {
 	db, err := database.New(fs, rootDir)
 	require.NoError(t, err)
 
-	idx, err := index.NewIndexer(fs, fileWriter, locker, db, rootDir)
+	idx, err := index.NewIndex(fs, fileWriter, locker, db, rootDir)
 	require.NoError(t, err)
 
 	err = idx.Add([]string{"hello.txt", "world.txt"})
@@ -143,7 +143,7 @@ func TestReplacesDirectoryWithFile(t *testing.T) {
 	db, err := database.New(fs, rootDir)
 	require.NoError(t, err)
 
-	idx, err := index.NewIndexer(fs, fileWriter, locker, db, rootDir)
+	idx, err := index.NewIndex(fs, fileWriter, locker, db, rootDir)
 	require.NoError(t, err)
 
 	err = idx.Add([]string{"hello.txt/hello.txt", "world.txt"})
