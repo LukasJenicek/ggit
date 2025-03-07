@@ -97,7 +97,9 @@ func TestWorkspace(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			f, err := w.ListFiles(tt.pattern)
+			t.Parallel()
+
+			f, err := w.MatchFiles(tt.pattern)
 
 			if tt.expectErr {
 				require.Error(t, err)

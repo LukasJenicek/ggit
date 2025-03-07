@@ -39,8 +39,45 @@ func New(rootDir string, fs filesystem.Fs) (*Workspace, error) {
 	}, nil
 }
 
+// os.Walkdir: The files are walked in lexical order which makes the output deterministic.
+func (w Workspace) ListFiles() ([]string, error) {
+	// TODO: load more ignored files from config
+	ignore := []string{".", "..", ".git", ".idea"}
+
+	var files []string
+
+	err := w.fs.WalkDir(w.rootDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return fmt.Errorf("walk dir: %w", err)
+		}
+
+		if slices.Contains(ignore, d.Name()) {
+			return filepath.SkipDir
+		}
+
+		if d.IsDir() {
+			return nil
+		}
+
+		cleanPath, err := filepath.Rel(w.rootDir, path)
+		if err != nil {
+			return fmt.Errorf("get relative path: %w", err)
+		}
+
+		files = append(files, cleanPath)
+
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("walk dir: %w", err)
+	}
+
+	return files, nil
+}
+
+// MatchFiles
 // Match files the paths are in relative format to root dir.
-func (w Workspace) ListFiles(patternMatch string) ([]string, error) {
+func (w Workspace) MatchFiles(patternMatch string) ([]string, error) {
 	// TODO: load more ignored files from config
 	ignore := []string{".", "..", ".git"}
 

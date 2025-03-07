@@ -3,8 +3,9 @@ package command
 import (
 	"errors"
 	"fmt"
-	"github.com/LukasJenicek/ggit/internal/repository"
 	"io"
+
+	"github.com/LukasJenicek/ggit/internal/repository"
 )
 
 type CommitCmd struct {
@@ -47,7 +48,7 @@ func (c *CommitCmd) Output(msg []byte, err error, stdout io.Writer) (int, error)
 		return 1, fmt.Errorf("commit cmd: %w", err)
 	}
 
-	fmt.Fprintf(stdout, string(msg))
+	fmt.Fprint(stdout, "%s", string(msg))
 
 	return 0, nil
 }
