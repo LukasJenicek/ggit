@@ -139,7 +139,7 @@ func (repo *Repository) Add(paths []string) error {
 	for _, path := range paths {
 		f, err := repo.Workspace.MatchFiles(path)
 		if err != nil {
-			return fmt.Errorf("list files: %w", err)
+			return fmt.Errorf("match files: %w", err)
 		}
 
 		if path == "." {
