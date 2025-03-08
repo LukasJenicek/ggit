@@ -44,9 +44,7 @@ type Stat struct {
 	FileInfo fs.FileInfo
 }
 
-// ListDir
-// List all files and directories in specified directory
-// TODO: Should be relative to current working dir
+// TODO: Should be relative to current working dir.
 func (w Workspace) ListDir(dir string) ([]*Stat, error) {
 	// TODO: load more ignored files from config
 	ignore := []string{".", "..", ".git", ".idea"}

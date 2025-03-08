@@ -41,17 +41,17 @@ func TestAddEntryToIndex(t *testing.T) {
 	db, err := database.New(fs, rootDir)
 	require.NoError(t, err)
 
-	idx, err := index.NewIndex(fs, fileWriter, locker, db, rootDir)
+	indexer, err := index.NewIndexer(fs, fileWriter, locker, db, rootDir)
 	require.NoError(t, err)
 
-	err = idx.Add([]string{"hello.txt", "world.txt"})
+	err = indexer.Add([]string{"hello.txt", "world.txt"})
 	require.NoError(t, err)
 
-	entries, _, err := idx.LoadEntries()
+	idx, err := indexer.Load()
 	require.NoError(t, err)
 
-	entriesNames := make([]string, len(entries))
-	for i, entry := range entries.SortedValues() {
+	entriesNames := make([]string, idx.Entries.Len())
+	for i, entry := range idx.Entries.SortedValues() {
 		entriesNames[i] = string(entry.Path)
 	}
 
@@ -86,7 +86,7 @@ func TestReplacesFileWithDirectory(t *testing.T) {
 	db, err := database.New(fs, rootDir)
 	require.NoError(t, err)
 
-	idx, err := index.NewIndex(fs, fileWriter, locker, db, rootDir)
+	idx, err := index.NewIndexer(fs, fileWriter, locker, db, rootDir)
 	require.NoError(t, err)
 
 	err = idx.Add([]string{"hello.txt", "world.txt"})
@@ -105,16 +105,15 @@ func TestReplacesFileWithDirectory(t *testing.T) {
 	err = idx.Add([]string{"hello.txt", "world.txt/world.txt"})
 	require.NoError(t, err)
 
-	entries, parents, err := idx.LoadEntries()
+	index, err := idx.Load()
 	require.NoError(t, err)
 
-	entriesNames := make([]string, len(entries))
-	for i, entry := range entries.SortedValues() {
+	entriesNames := make([]string, index.Entries.Len())
+	for i, entry := range index.Entries.SortedValues() {
 		entriesNames[i] = string(entry.Path)
 	}
 
 	require.EqualValues(t, []string{"hello.txt", "world.txt/world.txt"}, entriesNames)
-	require.Len(t, parents, 1)
 }
 
 func TestReplacesDirectoryWithFile(t *testing.T) {
@@ -149,7 +148,7 @@ func TestReplacesDirectoryWithFile(t *testing.T) {
 	db, err := database.New(fs, rootDir)
 	require.NoError(t, err)
 
-	idx, err := index.NewIndex(fs, fileWriter, locker, db, rootDir)
+	idx, err := index.NewIndexer(fs, fileWriter, locker, db, rootDir)
 	require.NoError(t, err)
 
 	err = idx.Add([]string{"hello.txt/hello.txt", "world.txt"})
@@ -163,16 +162,15 @@ func TestReplacesDirectoryWithFile(t *testing.T) {
 	err = idx.Add([]string{"hello.txt"})
 	require.NoError(t, err)
 
-	entries, parents, err := idx.LoadEntries()
+	index, err := idx.Load()
 	require.NoError(t, err)
 
-	entriesNames := make([]string, len(entries))
-	for i, entry := range entries.SortedValues() {
+	entriesNames := make([]string, index.Entries.Len())
+	for i, entry := range index.Entries.SortedValues() {
 		entriesNames[i] = string(entry.Path)
 	}
 
 	require.EqualValues(t, []string{"hello.txt", "world.txt"}, entriesNames)
-	require.Empty(t, parents)
 }
 
 func defaultStat(mode uint32, size int64) *syscall.Stat_t {

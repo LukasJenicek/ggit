@@ -20,12 +20,7 @@ const (
 	maxPathSize    = 0xfff
 )
 
-var (
-	entries Entries
-	parents map[string][]*Entry
-)
-
-type Index struct {
+type Indexer struct {
 	fs            filesystem.Fs
 	fileWriter    *filesystem.AtomicFileWriter
 	database      *database.Database
@@ -35,13 +30,37 @@ type Index struct {
 	rootDir       string
 }
 
-func NewIndex(
+type Index struct {
+	Entries *Entries
+	Parents *Parents
+}
+
+func NewIndex() *Index {
+	return &Index{
+		Entries: NewEntries(),
+		Parents: NewParents(),
+	}
+}
+
+func (i *Index) Tracked(path string) bool {
+	if _, ok := i.Entries.Get(path); ok {
+		return true
+	}
+
+	if _, ok := i.Parents.Get(path); ok {
+		return true
+	}
+
+	return false
+}
+
+func NewIndexer(
 	fs filesystem.Fs,
 	fileWriter *filesystem.AtomicFileWriter,
 	locker filesystem.Locker,
 	database *database.Database,
 	rootDir string,
-) (*Index, error) {
+) (*Indexer, error) {
 	if fs == nil {
 		return nil, errors.New("file system is nil")
 	}
@@ -62,7 +81,7 @@ func NewIndex(
 		return nil, errors.New("root dir is empty")
 	}
 
-	return &Index{
+	return &Indexer{
 		fs:         fs,
 		fileWriter: fileWriter,
 		database:   database,
@@ -79,8 +98,8 @@ func NewIndex(
 
 // Add
 // Start tracking files using .git/index.
-func (i *Index) Add(files []string) error {
-	indexEntries, parents, err := i.LoadEntries()
+func (i *Indexer) Add(files []string) error {
+	index, err := i.Load()
 	if err != nil {
 		return fmt.Errorf("load index: %w", err)
 	}
@@ -90,8 +109,8 @@ func (i *Index) Add(files []string) error {
 		return fmt.Errorf("save blobs: %w", err)
 	}
 
-	if len(indexEntries) > 0 {
-		i.clean(files, indexEntries, parents)
+	if index.Entries.Len() > 0 {
+		i.clean(files, index.Entries, index.Parents)
 	}
 
 	for _, e := range entries {
@@ -107,10 +126,10 @@ func (i *Index) Add(files []string) error {
 			return fmt.Errorf("new index entry: %w", err)
 		}
 
-		indexEntries[relFilePath] = indexEntry
+		index.Entries.Add(relFilePath, indexEntry)
 	}
 
-	indexContent, err := i.content.Generate(indexEntries.SortedValues())
+	indexContent, err := i.content.Generate(index.Entries.SortedValues())
 	if err != nil {
 		return fmt.Errorf("index content: %w", err)
 	}
@@ -126,12 +145,10 @@ func (i *Index) Add(files []string) error {
 	return nil
 }
 
-// LoadEntries
-// map[string][]*Entry: To make name conflict resolution easier when newly added filename conflicts with existing dir.
-func (i *Index) LoadEntries() (Entries, map[string][]*Entry, error) {
+func (i *Indexer) Load() (*Index, error) {
 	lock, err := i.locker.Lock(i.indexFilePath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("lock index: %w", err)
+		return nil, fmt.Errorf("lock index: %w", err)
 	}
 
 	defer func() {
@@ -145,26 +162,26 @@ func (i *Index) LoadEntries() (Entries, map[string][]*Entry, error) {
 	if err != nil {
 		// this is valid case when user is adding files for the first time
 		if errors.Is(err, os.ErrNotExist) {
-			return make(Entries), make(map[string][]*Entry), nil
+			return NewIndex(), nil
 		}
 
-		return nil, nil, fmt.Errorf("open index file %q: %w", i.indexFilePath, err)
+		return nil, fmt.Errorf("open index file %q: %w", i.indexFilePath, err)
 	}
 
 	content, err := io.ReadAll(indexFile)
 	if err != nil {
-		return nil, nil, fmt.Errorf("read index file: %w", err)
+		return nil, fmt.Errorf("read index file: %w", err)
 	}
 
 	if len(content) > 0 {
 		if err = CheckIndexIntegrity(content); err != nil {
-			return nil, nil, fmt.Errorf("index integrity: %w", err)
+			return nil, fmt.Errorf("index integrity: %w", err)
 		}
 	}
 
 	entryLen := binary.BigEndian.Uint32(content[8:12])
-	entries = make(Entries, entryLen)
-	parents = make(map[string][]*Entry)
+
+	index := NewIndex()
 
 	currPosition := 12
 	for range entryLen {
@@ -184,7 +201,7 @@ func (i *Index) LoadEntries() (Entries, map[string][]*Entry, error) {
 
 		entry, err := NewEntryFromBytes(content[currPosition:cursorPos], int(pathLen))
 		if err != nil {
-			return nil, nil, fmt.Errorf("create entry: %w", err)
+			return nil, fmt.Errorf("create entry: %w", err)
 		}
 
 		dir, _ := filepath.Split(string(entry.Path))
@@ -200,15 +217,11 @@ func (i *Index) LoadEntries() (Entries, map[string][]*Entry, error) {
 				p = strings.Join(parentsFolderPaths[:i+1], string(os.PathSeparator))
 			}
 
-			_, ok := parents[p]
-			if !ok {
-				parents[p] = make([]*Entry, 0)
-			}
-
-			parents[p] = append(parents[p], entry)
+			index.Parents.Add(p, entry)
 		}
 
-		entries[string(entry.Path)] = entry
+		index.Entries.Add(string(entry.Path), entry)
+
 		cursorPos++
 		// finding last null byte of entry
 		for cursorPos > 0 && content[cursorPos-1] == 0 {
@@ -219,11 +232,11 @@ func (i *Index) LoadEntries() (Entries, map[string][]*Entry, error) {
 		currPosition = cursorPos
 	}
 
-	return entries, parents, nil
+	return index, nil
 }
 
 // that file must be deleted.
-func (i *Index) clean(filePaths []string, indexEntries Entries, parents map[string][]*Entry) {
+func (i *Indexer) clean(filePaths []string, indexEntries *Entries, parents *Parents) {
 	for _, filePath := range filePaths {
 		filepathParts := strings.Split(filePath, string(os.PathSeparator))
 
@@ -233,34 +246,22 @@ func (i *Index) clean(filePaths []string, indexEntries Entries, parents map[stri
 				part = filepath.Join(filepathParts[:i]...)
 			}
 
-			delete(indexEntries, part)
+			indexEntries.Delete(part)
 
 			// if new file conflicts with existing folder
 			// all files within that folder must be deleted
-			if _, ok := parents[part]; ok {
-				for _, entry := range parents[part] {
-					delete(indexEntries, string(entry.Path))
+			if entries, ok := parents.Get(part); ok {
+				for _, entry := range entries {
+					indexEntries.Delete(string(entry.Path))
 				}
 
-				delete(parents, part)
+				parents.Delete(part)
 			}
 		}
 	}
 }
 
-func (i *Index) Tracked(path string) bool {
-	if _, ok := entries[path]; ok {
-		return true
-	}
-
-	if _, ok := parents[path]; ok {
-		return true
-	}
-
-	return false
-}
-
-func (i *Index) createIndexFile() error {
+func (i *Indexer) createIndexFile() error {
 	_, err := i.fs.Stat(i.indexFilePath)
 	if err != nil {
 		if os.IsNotExist(err) {

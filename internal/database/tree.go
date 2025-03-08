@@ -2,6 +2,7 @@ package database
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -117,23 +118,30 @@ func Build(root *Tree, entries []*Entry) (*Tree, error) {
 
 		t, ok := treeCache[d]
 		if !ok {
-			paths := strings.Split(d, "/")
+			split := strings.Split(d, string(os.PathSeparator))
 
-			if len(paths) == 1 {
-				t = NewTree(root, paths[0])
-				treeCache[d] = t
-				root.AddEntry(t)
-			} else {
-				parentPath := strings.Join(paths[:len(paths)-1], "/")
+			for i := range split {
+				folderParentPath := strings.Join(split[:i], string(os.PathSeparator))
+				folderPath := strings.Join(split[:i+1], string(os.PathSeparator))
 
-				parent, ok := treeCache[parentPath]
-				if !ok {
-					return nil, fmt.Errorf("parent entry %q not found", entry.Name)
+				if folderParentPath == "" {
+					treeCache[split[0]] = NewTree(root, split[0])
+					root.AddEntry(treeCache[split[0]])
+
+					continue
 				}
 
-				t = NewTree(parent, paths[len(paths)-1])
+				parent, ok := treeCache[folderParentPath]
+				if !ok {
+					return nil, fmt.Errorf("tree %s does not exist", folderParentPath)
+				}
+
+				t, ok = treeCache[folderPath]
+				if !ok {
+					t = NewTree(parent, split[i])
+				}
+
 				parent.AddEntry(t)
-				treeCache[d] = t
 			}
 		}
 

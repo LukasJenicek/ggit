@@ -23,7 +23,7 @@ var ErrNoFilesToCommit = errors.New("nothing added to commit (use 'ggit add' to 
 type Repository struct {
 	GitConfig *config.Config
 	Database  *database.Database
-	Index     *index.Index
+	Index     *index.Indexer
 	Refs      *database.Refs
 	Workspace *workspace.Workspace
 
@@ -77,7 +77,7 @@ func New(fs filesystem.Fs, clock clock.Clock, cwd string) (*Repository, error) {
 		return nil, fmt.Errorf("init database: %w", err)
 	}
 
-	indexer, err := index.NewIndex(fs, writer, locker, db, cwd)
+	indexer, err := index.NewIndexer(fs, writer, locker, db, cwd)
 	if err != nil {
 		return nil, fmt.Errorf("init indexer: %w", err)
 	}
@@ -159,18 +159,19 @@ func (repo *Repository) Add(paths []string) error {
 }
 
 func (repo *Repository) Commit() (*database.Commit, error) {
-	indexEntries, _, err := repo.Index.LoadEntries()
+	idx, err := repo.Index.Load()
 	if err != nil {
 		return nil, fmt.Errorf("load index: %w", err)
 	}
 
-	if len(indexEntries) == 0 {
+	entriesLen := idx.Entries.Len()
+	if entriesLen == 0 {
 		return nil, ErrNoFilesToCommit
 	}
 
-	entries := make([]*database.Entry, 0, len(indexEntries))
+	entries := make([]*database.Entry, 0, entriesLen)
 
-	for _, iEntry := range indexEntries.SortedValues() {
+	for _, iEntry := range idx.Entries.SortedValues() {
 		filePath := string(iEntry.Path)
 
 		entry, err := database.NewEntry(filepath.Base(filePath), filePath, iEntry.OID, false)
