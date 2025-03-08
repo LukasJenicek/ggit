@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/LukasJenicek/ggit/internal/ds"
+	"github.com/LukasJenicek/ggit/internal/index"
 	"github.com/LukasJenicek/ggit/internal/repository"
 )
 
@@ -23,12 +24,12 @@ func NewStatusCommand(repo *repository.Repository) (*StatusCommand, error) {
 
 func (s *StatusCommand) Run() ([]byte, error) {
 	// Load entries into memory
-	_, _, err := s.repo.Index.LoadEntries()
+	index, err := s.repo.Index.Load()
 	if err != nil {
 		return nil, fmt.Errorf("load index entries: %w", err)
 	}
 
-	untrackedFiles, err := s.scanWorkspace("")
+	untrackedFiles, err := s.scanWorkspace(index, "")
 	if err != nil {
 		return nil, fmt.Errorf("scan workspace: %w", err)
 	}
@@ -41,8 +42,8 @@ func (s *StatusCommand) Run() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (s *StatusCommand) scanWorkspace(prefix string) ([]string, error) {
-	stats, err := s.repo.Workspace.ListDir(prefix)
+func (s *StatusCommand) scanWorkspace(index *index.Index, dirPrefix string) ([]string, error) {
+	stats, err := s.repo.Workspace.ListDir(dirPrefix)
 	if err != nil {
 		return nil, fmt.Errorf("list dir: %w", err)
 	}
@@ -52,13 +53,13 @@ func (s *StatusCommand) scanWorkspace(prefix string) ([]string, error) {
 	for _, stat := range stats {
 		path := stat.RelPath
 
-		if s.repo.Index.Tracked(path) {
+		if index.Tracked(path) {
 			if stat.FileInfo.IsDir() {
-				if prefix != "" {
-					path = filepath.Join(prefix, path)
+				if dirPrefix != "" {
+					path = filepath.Join(dirPrefix, path)
 				}
 
-				files, err := s.scanWorkspace(path)
+				files, err := s.scanWorkspace(index, path)
 				if err != nil {
 					return nil, fmt.Errorf("scan workspace: %w", err)
 				}
@@ -71,7 +72,7 @@ func (s *StatusCommand) scanWorkspace(prefix string) ([]string, error) {
 			continue
 		}
 
-		trackable, err := s.trackableFile(path, stat.FileInfo)
+		trackable, err := s.trackableFile(index, path, stat.FileInfo)
 		if err != nil {
 			return nil, fmt.Errorf("trackable file: %w", err)
 		}
@@ -96,13 +97,13 @@ func (s *StatusCommand) scanWorkspace(prefix string) ([]string, error) {
 	}), nil
 }
 
-func (s *StatusCommand) trackableFile(path string, stat os.FileInfo) (bool, error) {
+func (s *StatusCommand) trackableFile(index *index.Index, path string, stat os.FileInfo) (bool, error) {
 	if stat == nil {
 		return false, errors.New("stat is nil")
 	}
 
 	if stat.Mode().IsRegular() {
-		return !s.repo.Index.Tracked(path), nil
+		return !index.Tracked(path), nil
 	}
 
 	if !stat.IsDir() {
@@ -115,7 +116,7 @@ func (s *StatusCommand) trackableFile(path string, stat os.FileInfo) (bool, erro
 	}
 
 	for _, item := range items {
-		trackable, err := s.trackableFile(filepath.Join(path, item.RelPath), item.FileInfo)
+		trackable, err := s.trackableFile(index, filepath.Join(path, item.RelPath), item.FileInfo)
 		if err != nil {
 			return false, fmt.Errorf("trackable file: %w", err)
 		}

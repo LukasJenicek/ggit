@@ -22,7 +22,7 @@ func NewEntry(filename string, absFilePath string, oid []byte, executable bool) 
 	}
 
 	if len(oid) != 20 {
-		return nil, fmt.Errorf("invalid SetOID length: expected 20 bytes, got %d", len(oid))
+		return nil, fmt.Errorf("invalid oid: expected 20 bytes, got %d", len(oid))
 	}
 
 	return &Entry{

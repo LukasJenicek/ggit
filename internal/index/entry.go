@@ -8,15 +8,99 @@ import (
 	"math"
 	"os"
 	"sort"
+	"sync"
 	"syscall"
 )
 
-type Entries map[string]*Entry
+type Parents struct {
+	mu      sync.Mutex
+	parents map[string][]*Entry
+}
+
+func NewParents() *Parents {
+	return &Parents{
+		parents: make(map[string][]*Entry),
+	}
+}
+
+func (e *Parents) Add(key string, value *Entry) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	values, ok := e.parents[key]
+	if !ok {
+		values = make([]*Entry, 0)
+	}
+
+	values = append(values, value)
+
+	e.parents[key] = values
+}
+
+func (e *Parents) Get(key string) ([]*Entry, bool) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	parents, ok := e.parents[key]
+
+	return parents, ok
+}
+
+func (e *Parents) Delete(key string) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	delete(e.parents, key)
+}
+
+type Entries struct {
+	mu      sync.Mutex
+	entries map[string]*Entry
+}
+
+func NewEntries() *Entries {
+	return &Entries{
+		entries: make(map[string]*Entry),
+	}
+}
+
+func (e *Entries) Add(key string, value *Entry) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	e.entries[key] = value
+}
+
+func (e *Entries) Get(key string) (*Entry, bool) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	entry, ok := e.entries[key]
+
+	return entry, ok
+}
+
+func (e *Entries) Delete(key string) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	delete(e.entries, key)
+}
+
+func (e *Entries) Len() int {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	return len(e.entries)
+}
 
 func (e *Entries) SortedValues() []*Entry {
-	entries := make([]*Entry, 0, len(*e))
+	e.mu.Lock()
+	defer e.mu.Unlock()
 
-	for _, v := range *e {
+	entries := make([]*Entry, 0, len(e.entries))
+
+	for _, v := range e.entries {
 		entries = append(entries, v)
 	}
 

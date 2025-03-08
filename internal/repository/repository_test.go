@@ -57,7 +57,7 @@ func TestNew(t *testing.T) {
 		w, err := workspace.New(cwd, fs)
 		require.NoError(t, err)
 
-		indexer, err := index.NewIndex(fs, writer, locker, d, cwd)
+		indexer, err := index.NewIndexer(fs, writer, locker, d, cwd)
 		require.NoError(t, err)
 
 		require.EqualValues(t, &repository.Repository{
@@ -107,7 +107,7 @@ func TestNew(t *testing.T) {
 		w, err := workspace.New(cwd, fs)
 		require.NoError(t, err)
 
-		indexer, err := index.NewIndex(fs, writer, locker, db, cwd)
+		indexer, err := index.NewIndexer(fs, writer, locker, db, cwd)
 		require.NoError(t, err)
 
 		require.EqualValues(t, &repository.Repository{
