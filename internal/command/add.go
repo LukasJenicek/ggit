@@ -53,7 +53,7 @@ func NewAddCommand(paths []string, repository *repository.Repository) (*AddComma
 
 func (a *AddCommand) Run() ([]byte, error) {
 	if err := a.repository.Add(a.paths); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("run add cmd: %w", err)
 	}
 
 	return []byte(""), nil

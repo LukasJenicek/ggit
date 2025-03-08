@@ -1,4 +1,4 @@
-GOLANGCI-VERSION = v1.63.4
+GOLANGCI-VERSION = v1.64.6
 
 build:
 	go build -o ./bin/ggit cmd/main.go

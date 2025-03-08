@@ -39,44 +39,42 @@ func New(rootDir string, fs filesystem.Fs) (*Workspace, error) {
 	}, nil
 }
 
-func (w Workspace) ListDir(dir string) (map[string]fs.FileInfo, error) {
+type Stat struct {
+	RelPath  string
+	FileInfo fs.FileInfo
+}
+
+func (w Workspace) ListDir(dir string) ([]*Stat, error) {
 	// TODO: load more ignored files from config
 	ignore := []string{".", "..", ".git", ".idea"}
 
 	// TODO: Should be relative to current working dir
-	path := filepath.Join(w.rootDir, dir)
+	path := w.rootDir
+	if dir != "" {
+		path = filepath.Join(w.rootDir, dir)
+	}
 
-	stats := make(map[string]fs.FileInfo)
-	err := w.fs.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return fmt.Errorf("walk dir: %w", err)
-		}
-
-		if slices.Contains(ignore, d.Name()) {
-			return filepath.SkipDir
-		}
-
-		fileInfo, err := w.fs.Stat(path)
-		if err != nil {
-			return fmt.Errorf("stat %s: %w", path, err)
-		}
-
-		if fileInfo.Name() == dir {
-			return nil
-		}
-
-		relPath, err := filepath.Rel(w.rootDir, path)
-		if err != nil {
-			return fmt.Errorf("rel path: %w", err)
-		}
-
-		stats[relPath] = fileInfo
-
-		return nil
-	})
-
+	entries, err := w.fs.ReadDir(path)
 	if err != nil {
-		return nil, fmt.Errorf("walk dir: %w", err)
+		return nil, fmt.Errorf("read dir %q: %w", dir, err)
+	}
+
+	stats := make([]*Stat, 0)
+
+	for _, entry := range entries {
+		if slices.Contains(ignore, entry.Name()) {
+			continue
+		}
+
+		info, err := entry.Info()
+		if err != nil {
+			return nil, fmt.Errorf("get entry info: %w", err)
+		}
+
+		stats = append(stats, &Stat{
+			RelPath:  entry.Name(),
+			FileInfo: info,
+		})
 	}
 
 	return stats, nil

@@ -91,14 +91,19 @@ func setConfigValues(v reflect.Value, section string, values map[string]map[stri
 
 		switch fieldValue.Kind() {
 		case reflect.String:
-			val, ok := val.(string)
+			v, ok := val.(string)
 			if !ok {
-				return fmt.Errorf("cannot set field %s", tag)
+				return fmt.Errorf("cannot assert to string %s: %v", tag, val)
 			}
 
-			fieldValue.SetString(val)
+			fieldValue.SetString(v)
 		case reflect.Bool:
-			boolVal, err := strconv.ParseBool(val.(string))
+			v, ok := val.(string)
+			if !ok {
+				return fmt.Errorf("cannot assert to string %s: %v", tag, val)
+			}
+
+			boolVal, err := strconv.ParseBool(v)
 			if err == nil {
 				fieldValue.SetBool(boolVal)
 			}

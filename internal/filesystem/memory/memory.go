@@ -104,6 +104,11 @@ func (f *Fs) WalkDir(path string, walkDir fs.WalkDirFunc) error {
 }
 
 //nolint:wrapcheck
+func (f *Fs) ReadDir(name string) ([]fs.DirEntry, error) {
+	return f.fsys.ReadDir(name)
+}
+
+//nolint:wrapcheck
 func (f *Fs) ReadFile(name string) ([]byte, error) {
 	return f.fsys.ReadFile(name)
 }

@@ -20,6 +20,11 @@ const (
 	maxPathSize    = 0xfff
 )
 
+var (
+	entries Entries
+	parents map[string][]*Entry
+)
+
 type Index struct {
 	fs            filesystem.Fs
 	fileWriter    *filesystem.AtomicFileWriter
@@ -158,8 +163,8 @@ func (i *Index) LoadEntries() (Entries, map[string][]*Entry, error) {
 	}
 
 	entryLen := binary.BigEndian.Uint32(content[8:12])
-	entries := make(Entries, entryLen)
-	parents := make(map[string][]*Entry)
+	entries = make(Entries, entryLen)
+	parents = make(map[string][]*Entry)
 
 	currPosition := 12
 	for range entryLen {
@@ -200,7 +205,7 @@ func (i *Index) LoadEntries() (Entries, map[string][]*Entry, error) {
 				parents[p] = make([]*Entry, 0)
 			}
 
-			parents[p] = append(parents[parentsFolderPath], entry)
+			parents[p] = append(parents[p], entry)
 		}
 
 		entries[string(entry.Path)] = entry
@@ -241,6 +246,18 @@ func (i *Index) clean(filePaths []string, indexEntries Entries, parents map[stri
 			}
 		}
 	}
+}
+
+func (i *Index) Tracked(path string) bool {
+	if _, ok := entries[path]; ok {
+		return true
+	}
+
+	if _, ok := parents[path]; ok {
+		return true
+	}
+
+	return false
 }
 
 func (i *Index) createIndexFile() error {
