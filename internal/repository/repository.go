@@ -164,11 +164,12 @@ func (repo *Repository) Commit() (*database.Commit, error) {
 		return nil, fmt.Errorf("load index: %w", err)
 	}
 
-	if len(indexEntries) == 0 {
+	entriesLen := indexEntries.Len()
+	if entriesLen == 0 {
 		return nil, ErrNoFilesToCommit
 	}
 
-	entries := make([]*database.Entry, 0, len(indexEntries))
+	entries := make([]*database.Entry, 0, entriesLen)
 
 	for _, iEntry := range indexEntries.SortedValues() {
 		filePath := string(iEntry.Path)

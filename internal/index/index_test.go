@@ -50,7 +50,7 @@ func TestAddEntryToIndex(t *testing.T) {
 	entries, _, err := idx.LoadEntries()
 	require.NoError(t, err)
 
-	entriesNames := make([]string, len(entries))
+	entriesNames := make([]string, entries.Len())
 	for i, entry := range entries.SortedValues() {
 		entriesNames[i] = string(entry.Path)
 	}
@@ -108,7 +108,7 @@ func TestReplacesFileWithDirectory(t *testing.T) {
 	entries, parents, err := idx.LoadEntries()
 	require.NoError(t, err)
 
-	entriesNames := make([]string, len(entries))
+	entriesNames := make([]string, entries.Len())
 	for i, entry := range entries.SortedValues() {
 		entriesNames[i] = string(entry.Path)
 	}
@@ -166,7 +166,7 @@ func TestReplacesDirectoryWithFile(t *testing.T) {
 	entries, parents, err := idx.LoadEntries()
 	require.NoError(t, err)
 
-	entriesNames := make([]string, len(entries))
+	entriesNames := make([]string, entries.Len())
 	for i, entry := range entries.SortedValues() {
 		entriesNames[i] = string(entry.Path)
 	}

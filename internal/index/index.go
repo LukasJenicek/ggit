@@ -21,7 +21,7 @@ const (
 )
 
 var (
-	entries Entries
+	entries *Entries
 	parents map[string][]*Entry
 )
 
@@ -90,7 +90,7 @@ func (i *Index) Add(files []string) error {
 		return fmt.Errorf("save blobs: %w", err)
 	}
 
-	if len(indexEntries) > 0 {
+	if indexEntries.Len() > 0 {
 		i.clean(files, indexEntries, parents)
 	}
 
@@ -107,7 +107,7 @@ func (i *Index) Add(files []string) error {
 			return fmt.Errorf("new index entry: %w", err)
 		}
 
-		indexEntries[relFilePath] = indexEntry
+		indexEntries.Add(relFilePath, indexEntry)
 	}
 
 	indexContent, err := i.content.Generate(indexEntries.SortedValues())
@@ -128,7 +128,7 @@ func (i *Index) Add(files []string) error {
 
 // LoadEntries
 // map[string][]*Entry: To make name conflict resolution easier when newly added filename conflicts with existing dir.
-func (i *Index) LoadEntries() (Entries, map[string][]*Entry, error) {
+func (i *Index) LoadEntries() (*Entries, map[string][]*Entry, error) {
 	lock, err := i.locker.Lock(i.indexFilePath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("lock index: %w", err)
@@ -145,7 +145,7 @@ func (i *Index) LoadEntries() (Entries, map[string][]*Entry, error) {
 	if err != nil {
 		// this is valid case when user is adding files for the first time
 		if errors.Is(err, os.ErrNotExist) {
-			return make(Entries), make(map[string][]*Entry), nil
+			return NewEntries(), make(map[string][]*Entry), nil
 		}
 
 		return nil, nil, fmt.Errorf("open index file %q: %w", i.indexFilePath, err)
@@ -163,7 +163,8 @@ func (i *Index) LoadEntries() (Entries, map[string][]*Entry, error) {
 	}
 
 	entryLen := binary.BigEndian.Uint32(content[8:12])
-	entries = make(Entries, entryLen)
+
+	entries = NewEntries()
 	parents = make(map[string][]*Entry)
 
 	currPosition := 12
@@ -208,7 +209,7 @@ func (i *Index) LoadEntries() (Entries, map[string][]*Entry, error) {
 			parents[p] = append(parents[p], entry)
 		}
 
-		entries[string(entry.Path)] = entry
+		entries.Add(string(entry.Path), entry)
 		cursorPos++
 		// finding last null byte of entry
 		for cursorPos > 0 && content[cursorPos-1] == 0 {
@@ -223,7 +224,7 @@ func (i *Index) LoadEntries() (Entries, map[string][]*Entry, error) {
 }
 
 // that file must be deleted.
-func (i *Index) clean(filePaths []string, indexEntries Entries, parents map[string][]*Entry) {
+func (i *Index) clean(filePaths []string, indexEntries *Entries, parents map[string][]*Entry) {
 	for _, filePath := range filePaths {
 		filepathParts := strings.Split(filePath, string(os.PathSeparator))
 
@@ -233,13 +234,13 @@ func (i *Index) clean(filePaths []string, indexEntries Entries, parents map[stri
 				part = filepath.Join(filepathParts[:i]...)
 			}
 
-			delete(indexEntries, part)
+			indexEntries.Delete(part)
 
 			// if new file conflicts with existing folder
 			// all files within that folder must be deleted
 			if _, ok := parents[part]; ok {
 				for _, entry := range parents[part] {
-					delete(indexEntries, string(entry.Path))
+					indexEntries.Delete(string(entry.Path))
 				}
 
 				delete(parents, part)
@@ -249,7 +250,7 @@ func (i *Index) clean(filePaths []string, indexEntries Entries, parents map[stri
 }
 
 func (i *Index) Tracked(path string) bool {
-	if _, ok := entries[path]; ok {
+	if _, ok := entries.Get(path); ok {
 		return true
 	}
 

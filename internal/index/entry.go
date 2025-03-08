@@ -8,15 +8,53 @@ import (
 	"math"
 	"os"
 	"sort"
+	"sync"
 	"syscall"
 )
 
-type Entries map[string]*Entry
+type Entries struct {
+	entries map[string]*Entry
+	mu      sync.Mutex
+}
+
+func NewEntries() *Entries {
+	return &Entries{
+		entries: make(map[string]*Entry),
+	}
+}
+
+func (e *Entries) Add(key string, value *Entry) {
+	e.mu.Lock()
+	e.mu.Unlock()
+
+	e.entries[key] = value
+}
+
+func (e *Entries) Get(key string) (*Entry, bool) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	entry, ok := e.entries[key]
+	return entry, ok
+}
+
+func (e *Entries) Delete(key string) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	delete(e.entries, key)
+}
+
+func (e *Entries) Len() int {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return len(e.entries)
+}
 
 func (e *Entries) SortedValues() []*Entry {
-	entries := make([]*Entry, 0, len(*e))
+	entries := make([]*Entry, 0, len(e.entries))
 
-	for _, v := range *e {
+	for _, v := range e.entries {
 		entries = append(entries, v)
 	}
 
