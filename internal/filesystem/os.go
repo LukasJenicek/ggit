@@ -39,6 +39,11 @@ func (*OsFS) WalkDir(path string, walkDir fs.WalkDirFunc) error {
 }
 
 //nolint:wrapcheck
+func (*OsFS) ReadDir(name string) ([]fs.DirEntry, error) {
+	return os.ReadDir(name)
+}
+
+//nolint:wrapcheck
 func (*OsFS) ReadFile(name string) ([]byte, error) {
 	return os.ReadFile(name)
 }

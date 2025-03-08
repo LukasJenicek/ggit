@@ -111,12 +111,12 @@ func TestAddFilesNameConflict(t *testing.T) {
 	// number of files
 	expectedContent = append(expectedContent, []byte{0, 0, 0, 2}...)
 
-	bytes, err := fileContent(t, fs, "tmp/test/hello.txt/world.txt", "hello.txt/world.txt")
+	bytes := fileContent(t, fs, "tmp/test/hello.txt/world.txt", "hello.txt/world.txt")
 	require.NoError(t, err)
 
 	expectedContent = append(expectedContent, bytes...)
 
-	bytes, err = fileContent(t, fs, "tmp/test/world.txt", "world.txt")
+	bytes = fileContent(t, fs, "tmp/test/world.txt", "world.txt")
 	require.NoError(t, err)
 
 	expectedContent = append(expectedContent, bytes...)
@@ -178,12 +178,12 @@ func TestAddFiles(t *testing.T) {
 	// number of files
 	expectedContent = append(expectedContent, []byte{0, 0, 0, 2}...)
 
-	bytes, err := fileContent(t, fs, "tmp/test/hello.txt", "hello.txt")
+	bytes := fileContent(t, fs, "tmp/test/hello.txt", "hello.txt")
 	require.NoError(t, err)
 
 	expectedContent = append(expectedContent, bytes...)
 
-	bytes, err = fileContent(t, fs, "tmp/test/world.txt", "world.txt")
+	bytes = fileContent(t, fs, "tmp/test/world.txt", "world.txt")
 	require.NoError(t, err)
 
 	expectedContent = append(expectedContent, bytes...)
@@ -214,7 +214,7 @@ func defaultStat(mode uint32, size int64) *syscall.Stat_t {
 	}
 }
 
-func fileContent(t *testing.T, fs fstest.MapFS, filepath, filename string) ([]byte, error) {
+func fileContent(t *testing.T, fs fstest.MapFS, filepath, filename string) []byte {
 	t.Helper()
 
 	stat, err := fs.Stat(filepath)
@@ -232,5 +232,5 @@ func fileContent(t *testing.T, fs fstest.MapFS, filepath, filename string) ([]by
 	content, err := entry.Content()
 	require.NoError(t, err)
 
-	return content, nil
+	return content
 }

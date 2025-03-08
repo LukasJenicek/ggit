@@ -19,7 +19,7 @@ func NewCommitCmd(repository *repository.Repository) (*CommitCmd, error) {
 func (c *CommitCmd) Run() ([]byte, error) {
 	commit, err := c.repository.Commit()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("run commit cmd: %w", err)
 	}
 
 	ref, err := c.repository.Refs.CurrentRef()

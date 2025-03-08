@@ -15,6 +15,8 @@ import (
 )
 
 func TestAddEntryToIndex(t *testing.T) {
+	t.Parallel()
+
 	rootDir := "tmp/test"
 
 	fs := memory.New(fstest.MapFS{
@@ -57,6 +59,8 @@ func TestAddEntryToIndex(t *testing.T) {
 }
 
 func TestReplacesFileWithDirectory(t *testing.T) {
+	t.Parallel()
+
 	rootDir := "tmp/test"
 	mapFS := fstest.MapFS{
 		"tmp/test": &fstest.MapFile{
@@ -114,6 +118,8 @@ func TestReplacesFileWithDirectory(t *testing.T) {
 }
 
 func TestReplacesDirectoryWithFile(t *testing.T) {
+	t.Parallel()
+
 	rootDir := "tmp/test"
 	mapFS := fstest.MapFS{
 		"tmp/test": &fstest.MapFile{

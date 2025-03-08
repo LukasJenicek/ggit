@@ -1,9 +1,7 @@
 package workspace_test
 
 import (
-	"maps"
 	"os"
-	"sort"
 	"testing"
 	"testing/fstest"
 
@@ -51,17 +49,12 @@ func TestWorkspace_ListDir(t *testing.T) {
 	stats, err := w.ListDir("internal")
 	require.NoError(t, err)
 
-	outKeys := make([]string, 0, len(stats))
-	for key := range maps.Keys(stats) {
-		outKeys = append(outKeys, key)
+	out := []string{}
+	for _, item := range stats {
+		out = append(out, item.RelPath)
 	}
-	sort.Strings(outKeys)
 
-	require.EqualValues(
-		t,
-		[]string{"internal/a.txt", "internal/b.txt", "internal/memory", "internal/memory/memory.go"},
-		outKeys,
-	)
+	require.EqualValues(t, []string{"a.txt", "b.txt", "memory"}, out)
 }
 
 func TestWorkspace_MatchFiles(t *testing.T) {

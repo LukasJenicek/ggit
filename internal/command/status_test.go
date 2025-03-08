@@ -73,12 +73,23 @@ func TestListingUntrackedDirectories(t *testing.T) {
 				Mode: 0o644,
 				Sys:  defaultStat(0o644, 6),
 			},
+			"tmp/test/internal": &fstest.MapFile{
+				Mode: os.ModeDir,
+			},
 			"tmp/test/internal/hello.txt": &fstest.MapFile{
 				Data: []byte("hello"),
 				Mode: 0o644,
 				Sys:  defaultStat(0o644, 6),
 			},
 			"tmp/test/internal/world.txt": &fstest.MapFile{
+				Data: []byte("hello"),
+				Mode: 0o644,
+				Sys:  defaultStat(0o644, 6),
+			},
+			"tmp/test/internal/help": &fstest.MapFile{
+				Mode: os.ModeDir,
+			},
+			"tmp/test/internal/help/hello.txt": &fstest.MapFile{
 				Data: []byte("hello"),
 				Mode: 0o644,
 				Sys:  defaultStat(0o644, 6),
@@ -108,5 +119,5 @@ func TestListingUntrackedDirectories(t *testing.T) {
 	output, err := statCmd.Run()
 	require.NoError(t, err)
 
-	require.EqualValues(t, "?? world.txt\n", string(output))
+	require.EqualValues(t, "?? internal/\n", string(output))
 }

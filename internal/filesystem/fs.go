@@ -22,6 +22,8 @@ type Fs interface {
 	fs.FS
 	fs.StatFS
 	fs.ReadFileFS
+	fs.ReadDirFS
+
 	OpenFile(name string, flag int, perm os.FileMode) (File, error)
 
 	FileWriter

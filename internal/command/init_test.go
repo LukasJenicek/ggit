@@ -2,7 +2,6 @@ package command_test
 
 import (
 	"bytes"
-	"context"
 	"io"
 	"os"
 	"testing"
@@ -30,7 +29,7 @@ func TestInitNewRepository(t *testing.T) {
 
 	runner := command.NewRunner(repo)
 
-	osExit, err := runner.RunCmd(context.Background(), "init", []string{}, io.Discard)
+	osExit, err := runner.RunCmd(t.Context(), "init", []string{}, io.Discard)
 
 	require.NoError(t, err)
 	require.Equal(t, 0, osExit)
@@ -68,7 +67,7 @@ func TestInitAlreadyInitializedRepository(t *testing.T) {
 	runner := command.NewRunner(repo)
 
 	buf := bytes.NewBuffer(nil)
-	_, _ = runner.RunCmd(context.Background(), "init", []string{}, buf)
+	_, _ = runner.RunCmd(t.Context(), "init", []string{}, buf)
 
 	require.Equal(t, []byte("Reinitialized existing Git repository in tmp/test/.git"), buf.Bytes())
 }

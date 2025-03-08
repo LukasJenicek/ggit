@@ -29,6 +29,12 @@ func (s Set[T]) Size() int {
 	return len(s)
 }
 
+func (s Set[T]) Exists(key T) bool {
+	_, ok := s[key]
+
+	return ok
+}
+
 func (s Set[T]) SortedValues(less func(a, b T) bool) []T {
 	keys := make([]T, 0, len(s))
 
