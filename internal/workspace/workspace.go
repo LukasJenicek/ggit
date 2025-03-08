@@ -44,11 +44,13 @@ type Stat struct {
 	FileInfo fs.FileInfo
 }
 
+// ListDir
+// List all files and directories in specified directory
+// TODO: Should be relative to current working dir
 func (w Workspace) ListDir(dir string) ([]*Stat, error) {
 	// TODO: load more ignored files from config
 	ignore := []string{".", "..", ".git", ".idea"}
 
-	// TODO: Should be relative to current working dir
 	path := w.rootDir
 	if dir != "" {
 		path = filepath.Join(w.rootDir, dir)
@@ -80,6 +82,7 @@ func (w Workspace) ListDir(dir string) ([]*Stat, error) {
 	return stats, nil
 }
 
+// ListFiles
 // os.Walkdir: The files are walked in lexical order which makes the output deterministic.
 func (w Workspace) ListFiles() ([]string, error) {
 	// TODO: load more ignored files from config
@@ -117,7 +120,8 @@ func (w Workspace) ListFiles() ([]string, error) {
 }
 
 // MatchFiles
-// Match files the paths are in relative format to root dir.
+// Matches files against the provided pattern and returns their relative paths.
+// It traverses the directory structure and applies pattern matching to find matching files.
 func (w Workspace) MatchFiles(patternMatch string) ([]string, error) {
 	// TODO: load more ignored files from config
 	ignore := []string{".", "..", ".git"}
