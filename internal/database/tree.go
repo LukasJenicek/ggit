@@ -139,6 +139,7 @@ func Build(root *Tree, entries []*Entry) (*Tree, error) {
 				t, ok = treeCache[folderPath]
 				if !ok {
 					t = NewTree(parent, split[i])
+					treeCache[split[i]] = t
 				}
 
 				parent.AddEntry(t)
