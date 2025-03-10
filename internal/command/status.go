@@ -55,9 +55,7 @@ func (s *StatusCommand) scanWorkspace(index *index.Index, dirPrefix string) ([]s
 
 		if index.Tracked(path) {
 			if stat.FileInfo.IsDir() {
-				if dirPrefix != "" {
-					path = filepath.Join(dirPrefix, path)
-				}
+				path = filepath.Join(dirPrefix, path)
 
 				files, err := s.scanWorkspace(index, path)
 				if err != nil {
@@ -70,6 +68,10 @@ func (s *StatusCommand) scanWorkspace(index *index.Index, dirPrefix string) ([]s
 			}
 
 			continue
+		}
+
+		if dirPrefix != "" {
+			path = filepath.Join(dirPrefix, path)
 		}
 
 		trackable, err := s.trackableFile(index, path, stat.FileInfo)
