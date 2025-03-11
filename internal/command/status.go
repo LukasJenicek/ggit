@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"io"
 	"io/fs"
 	"os"
@@ -31,15 +30,33 @@ func (s *StatusCommand) Run() ([]byte, error) {
 		return nil, fmt.Errorf("load index entries: %w", err)
 	}
 
-	untrackedFiles, tracked, err := s.scanWorkspace(index, "")
+	untracked, tracked, err := s.scanWorkspace(index, "")
 	if err != nil {
 		return nil, fmt.Errorf("scan workspace: %w", err)
 	}
 
-	spew.Dump(tracked)
+	changed := ds.Set[string]{}
+
+	for fileName, fileStat := range tracked {
+		stat, ok := index.Entries.Get(fileName)
+		if !ok {
+			return nil, fmt.Errorf("file %s not found in index entries", fileName)
+		}
+
+		if stat.FileSize != uint32(fileStat.Size()) {
+			changed[fileName] = struct{}{}
+		}
+	}
 
 	buf := bytes.NewBuffer(nil)
-	for _, f := range untrackedFiles {
+
+	for _, change := range changed.SortedValues(func(a, b string) bool {
+		return a < b
+	}) {
+		buf.WriteString(fmt.Sprintf(" M %s\n", change))
+	}
+
+	for _, f := range untracked {
 		buf.WriteString(fmt.Sprintf("?? %s\n", f))
 	}
 
