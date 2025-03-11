@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 
@@ -29,10 +31,12 @@ func (s *StatusCommand) Run() ([]byte, error) {
 		return nil, fmt.Errorf("load index entries: %w", err)
 	}
 
-	untrackedFiles, err := s.scanWorkspace(index, "")
+	untrackedFiles, tracked, err := s.scanWorkspace(index, "")
 	if err != nil {
 		return nil, fmt.Errorf("scan workspace: %w", err)
 	}
+
+	spew.Dump(tracked)
 
 	buf := bytes.NewBuffer(nil)
 	for _, f := range untrackedFiles {
@@ -42,28 +46,37 @@ func (s *StatusCommand) Run() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (s *StatusCommand) scanWorkspace(index *index.Index, dirPrefix string) ([]string, error) {
+func (s *StatusCommand) scanWorkspace(index *index.Index, dirPrefix string) ([]string, map[string]fs.FileInfo, error) {
 	stats, err := s.repo.Workspace.ListDir(dirPrefix)
 	if err != nil {
-		return nil, fmt.Errorf("list dir: %w", err)
+		return nil, nil, fmt.Errorf("list dir: %w", err)
 	}
 
 	untrackedFiles := ds.Set[string]{}
+	trackedFiles := make(map[string]fs.FileInfo)
 
 	for _, stat := range stats {
 		path := stat.RelPath
 
 		if index.Tracked(path) {
+			if !stat.FileInfo.IsDir() {
+				trackedFiles[path] = stat.FileInfo
+			}
+
 			if stat.FileInfo.IsDir() {
 				path = filepath.Join(dirPrefix, path)
 
-				files, err := s.scanWorkspace(index, path)
+				files, tracked, err := s.scanWorkspace(index, path)
 				if err != nil {
-					return nil, fmt.Errorf("scan workspace: %w", err)
+					return nil, nil, fmt.Errorf("scan workspace: %w", err)
 				}
 
 				for _, file := range files {
 					untrackedFiles.Add(file)
+				}
+
+				for p, trackedFile := range tracked {
+					trackedFiles[p] = trackedFile
 				}
 			}
 
@@ -76,7 +89,7 @@ func (s *StatusCommand) scanWorkspace(index *index.Index, dirPrefix string) ([]s
 
 		trackable, err := s.trackableFile(index, path, stat.FileInfo)
 		if err != nil {
-			return nil, fmt.Errorf("trackable file: %w", err)
+			return nil, nil, fmt.Errorf("trackable file: %w", err)
 		}
 
 		if trackable {
@@ -96,7 +109,7 @@ func (s *StatusCommand) scanWorkspace(index *index.Index, dirPrefix string) ([]s
 
 	return untrackedFiles.SortedValues(func(a, b string) bool {
 		return a < b
-	}), nil
+	}), trackedFiles, nil
 }
 
 func (s *StatusCommand) trackableFile(index *index.Index, path string, stat os.FileInfo) (bool, error) {
